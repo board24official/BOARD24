@@ -1,6 +1,6 @@
 /* BOARD24 Firebase 설정 — board24-4ed67 */
 window.BOARD24_FIREBASE_CONFIG = Object.freeze({
-  apiKey: "AIzaSyDNgFqQdE46Gd4m2oz2LxdMyU6zRQi-DA",
+  apiKey: "AIzaSyDNgFqQ6dE46Gd4m2oz2LxdMyU6zRQi-DA",
   authDomain: "board24-4ed67.firebaseapp.com",
   databaseURL: "https://board24-4ed67-default-rtdb.asia-southeast1.firebasedatabase.app",
   projectId: "board24-4ed67",
