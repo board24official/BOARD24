@@ -159,6 +159,48 @@
 
   footer.site { clear: both; margin-top: 28px !important; position: static !important; }
 
+  .btn-google {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    width: 100%;
+    min-height: 44px;
+    border: 1px solid #cfd7e6;
+    background: #fff;
+    color: #263247;
+    font-weight: 700;
+  }
+  .btn-google:hover { background: #f7f9fc; border-color: #aebbd0; }
+  .google-mark {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    border: 1px solid #d7deea;
+    border-radius: 50%;
+    background: #fff;
+    color: #3268cf;
+    font-size: 14px;
+    font-weight: 800;
+  }
+  .login-divider {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 15px 0;
+    color: #8a95a8;
+    font-size: 11px;
+  }
+  .login-divider::before,
+  .login-divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: #e1e6ef;
+  }
+
   @media (max-width: 768px) {
     .b24-workspace { display: flex; flex-direction: column; gap: 12px; }
     .b24-main, .b24-side { width: 100%; gap: 12px; }
@@ -400,6 +442,11 @@
     <div class="account-brand"><span>B24</span><b>BOARD 24</b></div>
     <div class="eyebrow">MEMBER ACCESS</div>
     <h3>사용자 로그인</h3>
+    <button class="btn btn-google" id="btnGoogleLogin" type="button">
+      <span class="google-mark" aria-hidden="true">G</span>
+      <span>Google로 계속하기</span>
+    </button>
+    <div class="login-divider"><span>또는 닉네임으로 시작</span></div>
     <label class="field">
       <span>이름 또는 닉네임</span>
       <input type="text" id="inName" maxlength="12" autocomplete="off">
@@ -564,6 +611,7 @@
   let isAdmin = false;
   let pendingJoinRoomId = new URLSearchParams(location.search).get('room');
   let loginBusy = false;
+  let googleBusy = false;
   let deferredInstallPrompt = null;
   let invitePollTimer = null;
   let activeInvite = null;
@@ -638,7 +686,9 @@
       loginModal.classList.add('hidden');
     } else {
       loginBusy = false;
+      googleBusy = false;
       $('btnLogin').disabled = false;
+      $('btnGoogleLogin').disabled = false;
       $('whoBox').classList.add('hidden');
       loginModal.classList.remove('hidden');
       setTimeout(() => $('inName').focus(), 60);
@@ -663,12 +713,44 @@
     }
   }
 
+  async function doGoogleLogin() {
+    if (googleBusy || Core.me) return;
+    googleBusy = true;
+    $('btnGoogleLogin').disabled = true;
+    try {
+      const account = await Core.googleLogin();
+      const fallback = String(account.email || '').split('@')[0] || 'Google 사용자';
+      Core.login(account.name || fallback, 'Google');
+      paintWho();
+      Core.toast('Google 계정으로 로그인했습니다.');
+      if (pendingJoinRoomId) handleJoinLink();
+      else offerRejoin();
+      startInvitePresence();
+    } catch (error) {
+      const code = error && error.code;
+      const message = code === 'auth/popup-closed-by-user'
+        ? 'Google 로그인이 취소되었습니다.'
+        : code === 'auth/popup-blocked' || code === 'auth/operation-not-supported-in-this-environment'
+          ? '이 브라우저에서는 Google 로그인 창을 열 수 없습니다. Safari 또는 Chrome에서 다시 시도해 주세요.'
+          : error && error.message
+            ? error.message
+            : 'Google 로그인에 실패했습니다.';
+      Core.toast(message, 3600);
+    } finally {
+      googleBusy = false;
+      $('btnGoogleLogin').disabled = false;
+    }
+  }
+
   $('btnLogin').addEventListener('click', doLogin);
+  $('btnGoogleLogin').addEventListener('click', doGoogleLogin);
   $('inName').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('inDept').focus(); });
   $('inDept').addEventListener('keydown', (e) => { if (e.key === 'Enter') doLogin(); });
 
-  $('btnLogout').addEventListener('click', () => {
+  $('btnLogout').addEventListener('click', async () => {
+    const googleAccount = Core.isGoogleLogin();
     Core.logout();
+    if (googleAccount) await Core.googleLogout().catch(() => {});
     paintWho();
   });
   ['railNewRoom'].forEach((id) => {

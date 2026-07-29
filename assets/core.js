@@ -513,6 +513,30 @@
       this.me = null;
     },
 
+    async googleLogin() {
+      const fb = this.store && this.store._fb;
+      if (!fb || !fb.authGoogleSignIn) {
+        throw new Error('Google 로그인을 사용할 수 없습니다.');
+      }
+      const user = await fb.authGoogleSignIn();
+      return {
+        uid: user.uid,
+        name: user.displayName || '',
+        email: user.email || '',
+        photoURL: user.photoURL || ''
+      };
+    },
+
+    isGoogleLogin() {
+      const fb = this.store && this.store._fb;
+      return !!(fb && fb.authProvider === 'google');
+    },
+
+    async googleLogout() {
+      const fb = this.store && this.store._fb;
+      if (fb && fb.authGoogleSignOut) await fb.authGoogleSignOut();
+    },
+
     requireLogin(redirect) {
       if (!this.me) {
         location.href = redirect || 'index.html';

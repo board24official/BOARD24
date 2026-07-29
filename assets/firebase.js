@@ -64,6 +64,44 @@
         return ensureUser();
       },
 
+      async authGoogleSignIn() {
+        const provider = new authMod.GoogleAuthProvider();
+        provider.setCustomParameters({ prompt: 'select_account' });
+        const current = await ensureUser();
+
+        try {
+          // 익명 사용자는 Google 계정에 연결해 기존 Firebase UID를 유지합니다.
+          if (current && current.isAnonymous) {
+            return (await authMod.linkWithPopup(current, provider)).user;
+          }
+          return (await authMod.signInWithPopup(auth, provider)).user;
+        } catch (error) {
+          // 이미 다른 기기에서 사용 중인 Google 계정이라면 그 계정으로 로그인합니다.
+          if (error && (error.code === 'auth/credential-already-in-use' ||
+                        error.code === 'auth/email-already-in-use')) {
+            const credential = authMod.GoogleAuthProvider.credentialFromError(error);
+            if (credential) {
+              return (await authMod.signInWithCredential(auth, credential)).user;
+            }
+          }
+          throw error;
+        }
+      },
+
+      async authGoogleSignOut() {
+        await authMod.signOut(auth);
+        return ensureUser();
+      },
+
+      get authProvider() {
+        const user = auth.currentUser;
+        if (!user) return 'none';
+        if (user.isAnonymous) return 'anonymous';
+        return (user.providerData || []).some((item) => item && item.providerId === 'google.com')
+          ? 'google'
+          : 'other';
+      },
+
       async get(path) {
         await ensureUser();
         return (await dbMod.get(dbMod.ref(db, path))).val();
