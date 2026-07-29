@@ -3340,7 +3340,7 @@
   /* ---------- 액션: 턴 종료 ---------- */
   async function endTurn() {
     const me = room.players[Core.me.id];
-    if (me.hand.length > handLimit(me)) {
+    if ((me.hand || []).length > handLimit(me)) {
       Core.toast(`손패를 ${handLimit(me)}장 이하로 줄여야 합니다. (버릴 카드를 골라 "버리기")`);
       return;
     }
@@ -4404,7 +4404,7 @@
       c.id === respCard || (me.character === 'calamity' && (c.id === 'bang' || c.id === 'miss')));
     const respCardName = C[respCard] ? C[respCard].n : '';
 
-    const selCard = sel >= 0 ? me.hand[sel] : null;
+    const selCard = sel >= 0 ? (me.hand || [])[sel] : null;
     const needsTarget = selCard && (['bang', 'duel', 'cat', 'steal', 'jail'].includes(selCard.id) ||
       (selCard.id === 'miss' && me.character === 'calamity'));
     const actionKey = needResp
@@ -4526,7 +4526,7 @@
               ${myTurn && r.step === 'play'
                 ? `<button class="btn" id="btnDiscard" ${sel >= 0 ? '' : 'disabled'}>버리기</button>` : ''}
               ${myTurn && r.step === 'play'
-                ? `<button class="btn btn-end" id="btnEnd">턴 종료${me.hand.length > me.hp ? ` (${me.hand.length - me.hp}장 초과)` : ''}</button>` : ''}
+                ? `<button class="btn btn-end" id="btnEnd">턴 종료${(me.hand || []).length > me.hp ? ` (${(me.hand || []).length - me.hp}장 초과)` : ''}</button>` : ''}
             `}
           </div>` : ''}
           ${me.character === 'sid' && me.hp > 0 ? `<div class="ow-actions medic-anytime-actions">
