@@ -1,0 +1,1042 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>BOARD 24</title>
+<meta name="description" content="PC와 모바일에서 함께 사용하는 사내 협업 도구입니다.">
+<meta name="theme-color" content="#1f3156">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="BOARD 24">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="apple-touch-icon" href="assets/app-icon-180.png">
+<link rel="stylesheet" href="assets/app.css">
+<style>
+  /* v2.9.30 — desktop/mobile card visibility corrected */
+  .hidden { display: none !important; }
+  /* GitHub Pages 배포본 — 내 자료실 행 아래 초대 링크 복사 버튼 */
+  .room-invite-row {
+    display: flex;
+    justify-content: flex-end;
+    padding: 7px 16px;
+    background: #fff;
+    border-bottom: 1px solid var(--office-border, rgba(255,255,255,.11));
+  }
+  .office-admin .room-invite-row { background: #f7f9fc; }
+  @media (max-width: 720px) {
+    .room-invite-row .btn { font-size: 11px; padding: 5px 10px; }
+  }
+  .room-list > *:last-child { border-bottom: none !important; }
+  html, body { min-height: 100%; }
+  body.office-admin { background: #f3f6fb !important; }
+  main.wrap { min-height: calc(100vh - 64px); overflow: visible !important; }
+
+  .b24-workspace,
+  .b24-main,
+  .b24-side,
+  .b24-games,
+  .b24-game,
+  .b24-bottom,
+  .b24-info,
+  .b24-sidebox { box-sizing: border-box; }
+
+  .b24-workspace {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 250px;
+    gap: 16px;
+    align-items: start;
+    width: 100%;
+    margin-top: 0;
+  }
+
+  .b24-main {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    min-width: 0;
+  }
+
+  .b24-games {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+    width: 100%;
+  }
+
+  .b24-game {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-width: 0;
+    height: 168px;
+    padding: 22px;
+    border: 1px solid #dbe3ef;
+    border-radius: 9px;
+    background: #fff;
+    color: #1f2937;
+    text-decoration: none;
+    overflow: hidden;
+    position: relative;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, .04);
+  }
+
+  .b24-game:hover {
+    border-color: #9bb9f4;
+    box-shadow: 0 5px 18px rgba(31, 49, 86, .09);
+  }
+
+  .b24-game::before,
+  .b24-game::after { content: none !important; display: none !important; }
+
+  .b24-game-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    flex: 0 0 28px;
+    border: 1px solid #d6e2f6;
+    border-radius: 7px;
+    background: #f7faff;
+    color: #3268cf;
+    font-size: 13px;
+  }
+
+  .b24-game h3 {
+    margin: 18px 0 0;
+    font-size: 17px;
+    text-align: center;
+    line-height: 1.35;
+    font-weight: 700;
+    word-break: keep-all;
+  }
+
+  /* PC에서는 모바일 전용 게임 정보 완전 숨김 */
+  .b24-game-code,
+  .b24-game-meta,
+  .b24-game-arrow {
+    display: none !important;
+  }
+
+
+  .b24-bottom {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+    width: 100%;
+  }
+
+  .b24-info,
+  .b24-sidebox {
+    min-width: 0;
+    border: 1px solid #dbe3ef;
+    border-radius: 9px;
+    background: #fff;
+    overflow: hidden;
+  }
+
+  .b24-info { min-height: 160px; }
+  .b24-side { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+  .b24-sidebox { width: 100%; }
+  .b24-sidebox.b24-primary { padding: 18px; background: #3262b5; color: #fff; border-color: #3262b5; }
+  .b24-sidebox.b24-primary .eyebrow { color: rgba(255,255,255,.76); }
+  .b24-sidebox.b24-primary h3 { margin: 5px 0 8px; color: #fff; }
+  .b24-sidebox.b24-primary p { margin: 0 0 16px; color: rgba(255,255,255,.78); font-size: 12px; line-height: 1.55; }
+
+  .b24-info .rail-head,
+  .b24-sidebox .rail-head { padding: 14px 16px 10px; }
+  .b24-info .rail-list { margin: 0; padding: 0 16px 14px; }
+  #rooms.b24-sidebox { min-height: 140px; }
+  #rooms.b24-sidebox .room-list { min-height: 72px; max-height: 260px; overflow-y: auto; overflow-x: hidden; }
+
+  #adminPanel.hidden,
+  .modal-back.hidden,
+  .mobile-home-install.hidden,
+  .who.hidden { display: none !important; }
+
+  footer.site { clear: both; margin-top: 28px !important; position: static !important; }
+
+  @media (max-width: 768px) {
+    .b24-workspace { display: flex; flex-direction: column; gap: 12px; }
+    .b24-main, .b24-side { width: 100%; gap: 12px; }
+    .b24-games, .b24-bottom { grid-template-columns: 1fr; gap: 12px; }
+    .b24-game {
+      align-items: flex-start;
+      justify-content: flex-start;
+      height: 170px;
+      padding: 20px;
+    }
+    .b24-game h3 {
+      margin-top: 16px;
+      text-align: left;
+    }
+    .b24-game-code {
+      display: block !important;
+      margin-top: auto;
+      margin-bottom: 7px;
+      color: #7b8799;
+      font-size: 10px;
+      line-height: 1.2;
+      letter-spacing: .10em;
+    }
+    .b24-game-meta {
+      display: flex !important;
+      flex-wrap: wrap;
+      gap: 5px 10px;
+      margin: 0;
+      padding: 0;
+      color: #8792a4;
+      font-size: 11px;
+      line-height: 1.35;
+    }
+    .b24-game-arrow {
+      display: block !important;
+      position: absolute;
+      right: 18px;
+      bottom: 16px;
+      color: #566274;
+      font-size: 15px;
+    }
+  }
+</style>
+</head>
+<body class="office-admin">
+
+<div class="conn-banner"></div>
+
+<aside class="office-sidebar" aria-label="업무 메뉴">
+  <a class="office-logo" href="index.html"><span>B24</span> BOARD 24</a>
+  <div class="office-account">
+    <b>통합 운영 워크스페이스</b>
+    <small>사내 업무 관리 시스템</small>
+  </div>
+  <nav>
+    <a class="active" href="#dashboard"><span>⌂</span> 홈</a>
+    <a href="#rooms"><span>▣</span> 진행 업무</a>
+    <a href="#games"><span>▤</span> 업무 도구</a>
+    <a href="#rooms"><span>◉</span> 실시간 현황</a>
+    <a href="#guide" id="sideGuide"><span>?</span> 이용 안내</a>
+  </nav>
+  <div class="office-sidebar-foot">BOARD 24 WORKSPACE<br><small>Internal Operations</small></div>
+</aside>
+
+<header class="topbar">
+  <a class="brand" href="index.html" aria-label="BOARD 24 홈">
+    <span class="brand-mark" aria-hidden="true">B24</span>
+    <span>BOARD <em>24</em><small>INTERNAL OPERATIONS</small></span>
+  </a>
+  <nav class="main-nav" aria-label="주요 메뉴">
+    <a class="active" href="#dashboard">대시보드</a>
+    <a href="#games">업무 도구</a>
+    <a href="#rooms">진행 현황</a>
+    <a href="#guide" id="btnGuide">이용 안내</a>
+  </nav>
+  <div class="spacer"></div>
+  <div class="who hidden" id="whoBox">
+    <div class="avatar" id="whoAvatar"></div>
+    <button class="btn btn-ghost btn-sm" id="btnLogout">LOGOUT</button>
+  </div>
+</header>
+
+<main class="wrap" id="dashboard">
+
+  <div class="office-page-head">
+    <div><h1>통합 운영 대시보드</h1></div>
+    <div class="office-date">
+      <span id="officeDate">업무 현황</span>
+      <b id="leaveTimer">00:00:00</b>
+    </div>
+  </div>
+
+  <section class="office-notice-banner" aria-label="운영 안내">
+    <div>
+      <span class="office-notice-badge">NOTICE</span>
+      <b>BOARD 24 × Cafe24 통합 서비스 베타 안내</b>
+      <small>향후 서비스 연동을 위한 사전 테스트를 준비하고 있습니다.</small>
+    </div>
+  </section>
+
+  <section class="office-kpis" aria-label="오늘의 업무 현황">
+    <div><span>대기 중 업무</span><b id="kpiWaiting">0</b><small>참여 가능</small></div>
+    <div><span>처리 중 업무</span><b id="kpiPlaying">0</b><small>실시간 처리 현황</small></div>
+    <div><span>활성 사용자</span><b id="kpiUsers">0</b><small>현재 참여 인원</small></div>
+    <div><span>시스템 상태</span><b class="status-ok">정상</b><small>실시간 동기화</small></div>
+  </section>
+
+  <section class="hero office-ad-hero">
+    <div class="hero-copy">
+      <div class="office-ad-label">BOARD 24 AUTOMATION</div>
+      <h1>반복 업무는 줄이고,<br>핵심 검토에 집중하세요.</h1>
+      <p>자동 참여, 재접속 복구, 백그라운드 알림까지 하나의 업무 환경에서 지원합니다.</p>
+    </div>
+    <div class="office-ad-visual" aria-hidden="true">
+      <div class="ad-orbit ad-orbit-one"></div>
+      <div class="ad-orbit ad-orbit-two"></div>
+      <div class="ad-panel">
+        <span>AUTOMATION STATUS</span>
+        <b>업무 연결 상태</b>
+        <strong>정상</strong>
+        <i><em style="width:86%"></em></i>
+      </div>
+      <div class="ad-chip ad-chip-one">AUTO</div>
+      <div class="ad-chip ad-chip-two">SYNC</div>
+      <div class="ad-chip ad-chip-three">ALERT</div>
+    </div>
+  </section>
+
+  <div class="status-strip office-service-strip" aria-label="서비스 상태">
+    <span class="service-connection"><small><span class="dot" id="connDot"></span>연결 상태</small><b id="connText">확인 중</b></span>
+    <span><small>활성 라운지</small><b id="roomCount">0</b></span>
+    <span><small>지원 환경</small><b>PC · MOBILE</b></span>
+  </div>
+
+  <div class="b24-workspace">
+    <div class="b24-main">
+      <section id="games" aria-label="업무 도구">
+        <div class="b24-games">
+          <a class="b24-game" data-g="outlaw" href="#" data-new="outlaw">
+            <span class="b24-game-icon" aria-hidden="true">✓</span>
+            <h3>사용자 검증 프로세스</h3>
+            <div class="b24-game-code">BANG</div>
+            <div class="b24-game-meta"><span>4–7인</span><span>30–45분</span><span>난이도 ●●●</span></div>
+            <span class="b24-game-arrow" aria-hidden="true">→</span>
+          </a>
+
+          <a class="b24-game" data-g="pass" href="#" data-new="pass">
+            <span class="b24-game-icon" aria-hidden="true">≡</span>
+            <h3>업무 우선순위</h3>
+            <div class="b24-game-code">NO THANKS</div>
+            <div class="b24-game-meta"><span>3–7인</span><span>20분</span><span>난이도 ●○○</span></div>
+            <span class="b24-game-arrow" aria-hidden="true">→</span>
+          </a>
+
+          <a class="b24-game" data-g="ladder" href="#" data-new="ladder">
+            <span class="b24-game-icon" aria-hidden="true">◇</span>
+            <h3>회원 등급 관리</h3>
+            <div class="b24-game-code">DALMUTI</div>
+            <div class="b24-game-meta"><span>4–8인</span><span>30분</span><span>난이도 ●●○</span></div>
+            <span class="b24-game-arrow" aria-hidden="true">→</span>
+          </a>
+
+          <a class="b24-game" data-g="onecard" href="#" data-new="onecard">
+            <span class="b24-game-icon" aria-hidden="true">↻</span>
+            <h3>업무 카드 전달</h3>
+            <div class="b24-game-code">ONE CARD</div>
+            <div class="b24-game-meta"><span>2–5인</span><span>10–20분</span><span>난이도 ●○○</span></div>
+            <span class="b24-game-arrow" aria-hidden="true">→</span>
+          </a>
+        </div>
+      </section>
+
+      <div class="b24-bottom" aria-label="공지 및 최근 업데이트">
+        <section class="b24-info">
+          <div class="rail-head"><h3>공지사항</h3></div>
+          <ul class="rail-list">
+            <li><span>시스템</span><b>모바일 알림 설정 안내</b><time>07.25</time></li>
+            <li><span>운영</span><b>자료실 재접속 기능 개선</b><time>07.25</time></li>
+            <li><span>안내</span><b>업무 도구 이용 방법</b><time>07.24</time></li>
+          </ul>
+        </section>
+
+        <section class="b24-info">
+          <div class="rail-head"><h3>최근 업데이트</h3><span class="rail-state">정상 운영</span></div>
+          <ul class="rail-list compact">
+            <li><b>사용자 검증 프로세스</b><small>역할·활동 로그 개선</small></li>
+            <li><b>업무 우선순위</b><small>모바일 조작 영역 최적화</small></li>
+            <li><b>회원 등급 관리</b><small>순서·카드 화면 개선</small></li>
+            <li><b>업무 카드 전달</b><small>최대 5인 플레이 지원</small></li>
+          </ul>
+        </section>
+      </div>
+    </div>
+
+    <aside class="b24-side" aria-label="빠른 실행 및 실시간 진행">
+      <section class="b24-sidebox b24-primary">
+        <span class="eyebrow">QUICK ACCESS</span>
+        <h3>업무 자료실</h3>
+        <p>새 자료실을 만들거나 현재 작업을 바로 이어가세요.</p>
+        <button class="btn btn-primary btn-block" id="railNewRoom">자료실 만들기</button>
+      </section>
+
+      <section id="rooms" class="b24-sidebox">
+        <div class="rail-head"><h3>실시간 진행 로그</h3></div>
+        <div class="room-list" id="roomList">
+          <div class="empty-state">불러오는 중…</div>
+        </div>
+      </section>
+    </aside>
+  </div>
+
+  <section class="admin-panel hidden" id="adminPanel">
+    <div class="section-head">
+      <div>
+        <span class="eyebrow">OPERATIONS CONTROL</span>
+        <h2>관리자 제어실</h2>
+      </div>
+      <button class="btn btn-ghost btn-sm" id="adminLogout">관리자 로그아웃</button>
+    </div>
+    <div class="admin-summary" id="adminSummary"></div>
+    <div class="admin-rooms" id="adminRooms"></div>
+  </section>
+
+  <footer class="site" id="guide">
+    <b>BOARD 24</b> ·
+    <button class="footer-admin-link" id="btnAdmin" type="button">ADMIN</button><br>
+    Cafe24 통합 운영 연동을 준비 중인 베타 페이지입니다.
+  </footer>
+
+  <button class="mobile-home-install" id="btnHomeInstall" type="button">
+    <span aria-hidden="true">＋</span>
+    <span><b>Safari로 열어 홈 화면에 추가</b><small>공유 버튼 □↑ → 홈 화면에 추가</small></span>
+  </button>
+</main>
+
+<!-- 로그인 모달 -->
+<div class="modal-back hidden" id="loginModal">
+  <div class="modal account-modal">
+    <div class="account-brand"><span>B24</span><b>BOARD 24</b></div>
+    <div class="eyebrow">MEMBER ACCESS</div>
+    <h3>사용자 로그인</h3>
+    <label class="field">
+      <span>이름 또는 닉네임</span>
+      <input type="text" id="inName" maxlength="12" autocomplete="off">
+    </label>
+    <label class="field">
+      <span>직급 또는 소속 (선택)</span>
+      <input type="text" id="inDept" maxlength="16" autocomplete="off">
+    </label>
+    <div class="modal-actions">
+      <button class="btn btn-primary" id="btnLogin">로그인</button>
+    </div>
+    <button class="account-admin-link" id="btnAdminLoginOpen">관리자 로그인</button>
+  </div>
+</div>
+
+<div class="modal-back hidden" id="adminModal">
+  <div class="modal account-modal admin-login-modal">
+    <div class="account-brand"><span>B24</span><b>BOARD 24</b></div>
+    <div class="eyebrow">ADMINISTRATOR</div>
+    <h3>관리자 로그인</h3>
+    <label class="field">
+      <span>관리자 비밀번호</span>
+      <input type="password" id="adminPassword" maxlength="40" autocomplete="current-password">
+    </label>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" id="adminCancel">취소</button>
+      <button class="btn btn-primary" id="adminLogin">로그인</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-back hidden" id="guideModal">
+  <div class="modal guide-modal" role="dialog" aria-modal="true" aria-labelledby="guideTitle">
+    <div class="guide-head">
+      <div>
+        <div class="eyebrow">QUICK GUIDE</div>
+        <h3 id="guideTitle">BOARD 24 이용 안내</h3>
+      </div>
+      <button class="btn btn-ghost btn-sm" id="guideClose" aria-label="이용 안내 닫기">닫기</button>
+    </div>
+
+    <div class="guide-content">
+      <section>
+        <h4>업무 도구 이용하기</h4>
+        <ol>
+          <li>이름과 직급 또는 소속을 입력해 로그인합니다.</li>
+          <li>업무 도구를 선택하거나 공개 자료실을 엽니다.</li>
+          <li>인원을 정하고 필요하면 접근 코드를 설정합니다. 자료실 이름은 개설자 이름으로 자동 생성됩니다.</li>
+          <li>참가자가 준비를 완료하면 개설자가 세션을 시작합니다.</li>
+          <li>인원이 부족하면 개설자가 AI 참가자를 추가할 수 있습니다.</li>
+        </ol>
+      </section>
+
+      <section>
+        <h4>사용자 검증 프로세스 <small>4–7인</small></h4>
+        <p><b>프로젝트 리더</b>은 공개 역할이며 월급루팡과 프로이직러를 모두 제거하면 목표를 달성합니다. <b>에이스</b>는 프로젝트 리더 편으로 프로젝트 리더를 지킵니다. <b>월급루팡</b>은 프로젝트 리더를 제거하면 목표를 달성하며, <b>프로이직러</b>는 다른 참가자들을 제거하고 마지막까지 남아야 합니다. 진행 화면의 역할 안내에서 세부 조건을 확인할 수 있습니다.</p>
+      </section>
+
+      <section>
+        <h4>업무 우선순위 <small>3–7인</small></h4>
+        <p>공개된 숫자 타일을 가져가거나 포인트 하나를 내고 다음 사람에게 넘깁니다. 연속된 숫자는 가장 작은 숫자만 점수에 포함되며, 마지막에는 점수가 낮은 사람이 승리합니다.</p>
+      </section>
+
+      <section>
+        <h4>회원 등급 관리 <small>4–8인</small></h4>
+        <p>같은 숫자의 카드를 같은 장수만큼 내되, 앞사람보다 강한 카드만 낼 수 있습니다. 손패를 먼저 비운 순서로 다음 라운드의 직급이 결정됩니다.</p>
+      </section>
+
+      <section>
+        <h4>재접속과 나가기</h4>
+        <p>새로고침·화면 잠금·일시적인 연결 끊김은 같은 이름과 좌석으로 자동 복구됩니다. 진행 화면의 <b>나가기</b>를 누르면 참가자 목록에서 완전히 퇴장하므로 재접속 안내가 다시 뜨지 않습니다.</p>
+      </section>
+
+      <section>
+        <h4>관리자 기능</h4>
+        <p>홈 상단의 관리자 메뉴에서 활성 자료실 확인, 참가자 AI 전환·강제 퇴장, 순서 넘기기, 세션 초기화와 자료실 삭제를 할 수 있습니다.</p>
+      </section>
+    </div>
+  </div>
+</div>
+
+<div class="modal-back hidden" id="installModal">
+  <div class="modal install-guide-modal" role="dialog" aria-modal="true" aria-labelledby="installTitle">
+    <div class="eyebrow">QUICK ACCESS</div>
+    <h3 id="installTitle">Safari에서 홈 화면에 추가</h3>
+    <p class="lede">Safari에서 아래 순서대로 누르면 앱처럼 바로 실행할 수 있습니다.</p>
+    <ol class="install-steps">
+      <li><b>공유</b> 버튼 <span aria-hidden="true">□↑</span>을 누릅니다.</li>
+      <li>Safari 하단 또는 상단의 <b>공유 버튼 □↑</b>을 누릅니다.</li>
+      <li>공유 메뉴에서 <b>홈 화면에 추가</b>를 누른 뒤 <b>추가</b>를 선택합니다.</li>
+      <li>항목이 안 보이면 공유 메뉴 맨 아래 <b>동작 편집</b>에서 활성화합니다.</li>
+      <li>오른쪽 위의 <b>추가</b>를 누릅니다.</li>
+    </ol>
+    <button class="btn btn-primary btn-block" id="installClose">확인</button>
+  </div>
+</div>
+
+
+<div class="modal-back hidden" id="gameInviteModal">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="gameInviteTitle">
+    <div class="eyebrow">GAME INVITE</div>
+    <h3 id="gameInviteTitle">게임 초대가 도착했습니다</h3>
+    <p class="lede" id="gameInviteText"></p>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" id="gameInviteDecline">거절</button>
+      <button class="btn btn-primary" id="gameInviteAccept">참여하기</button>
+    </div>
+  </div>
+</div>
+
+<!-- 방 만들기 모달 -->
+<div class="modal-back hidden" id="newRoomModal">
+  <div class="modal">
+    <div class="eyebrow">NEW WORKSPACE</div>
+    <h3>자료실 만들기</h3>
+    <p class="lede">자료실은 개설자 이름으로 자동 생성됩니다.</p>
+
+    <label class="field">
+      <span>업무 유형</span>
+      <select id="nrGame">
+        <option value="pass">NO THANKS · 3–7인</option>
+        <option value="ladder">DALMUTI · 4–8인</option>
+        <option value="outlaw">BANG · 4–7인</option>
+        <option value="onecard">ONE CARD · 2–5인</option>
+      </select>
+    </label>
+    <label class="field">
+      <span>최대 인원</span>
+      <select id="nrSeats"></select>
+    </label>
+    <label class="field">
+      <span>접근 코드 (선택 · 비우면 공개)</span>
+      <input type="text" id="nrPin" maxlength="8" placeholder="숫자 또는 문자" autocomplete="off">
+    </label>
+
+    <div class="modal-actions">
+      <button class="btn btn-ghost" id="nrCancel">취소</button>
+      <button class="btn btn-primary" id="nrCreate">자료실 개설</button>
+    </div>
+  </div>
+</div>
+
+<script src="assets/firebase-config.js"></script>
+<script src="assets/firebase.js"></script>
+<script src="assets/core.js"></script>
+<script>
+(async function () {
+  'use strict';
+
+  // Firebase SDK 로딩 대기
+  if (window.T9_FIREBASE && window.T9_FIREBASE._pending) {
+    try { await window.T9_FIREBASE._pending; } catch (_) {}
+  }
+
+  await Core.init();
+
+
+  const $ = (id) => document.getElementById(id);
+  const loginModal = $('loginModal');
+  const newRoomModal = $('newRoomModal');
+  let rooms = [];
+  let isAdmin = false;
+  let pendingJoinRoomId = new URLSearchParams(location.search).get('room');
+  let loginBusy = false;
+  let deferredInstallPrompt = null;
+  let invitePollTimer = null;
+  let activeInvite = null;
+
+  async function inviteApi(payload, query) {
+    if (location.hostname.endsWith('github.io')) return { ok:true, people:[], invites:[] };
+    const url = 'api.php' + (query ? '?' + new URLSearchParams(query) : '');
+    const res = await fetch(url, query ? { cache: 'no-store' } : {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload || {})
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || data.ok === false) throw new Error(data.error || '초대 처리에 실패했습니다.');
+    return data;
+  }
+
+  function closeInviteModal() {
+    $('gameInviteModal').classList.add('hidden');
+    activeInvite = null;
+  }
+
+  async function answerInvite(decision) {
+    if (!activeInvite || !Core.me) return;
+    const invite = activeInvite;
+    try {
+      await inviteApi({ action: 'invite_respond', userId: Core.me.id, inviteId: invite.id, decision });
+      closeInviteModal();
+      if (decision === 'accepted') {
+        try {
+          await Core.joinRoom(invite.roomId, '');
+          location.href = 'outlaw.html?room=' + encodeURIComponent(invite.roomId);
+        } catch (err) {
+          Core.toast(err.message || '방에 참여하지 못했습니다.');
+        }
+      } else {
+        Core.toast('게임 초대를 거절했습니다.');
+      }
+    } catch (err) { Core.toast(err.message); }
+  }
+
+  async function pollInvites() {
+    if (!Core.me || document.hidden) return;
+    try {
+      await inviteApi({ action: 'presence_beat', userId: Core.me.id, name: Core.me.name, dept: Core.me.dept || '', page: 'lobby' });
+      const data = await inviteApi(null, { action: 'presence', userId: Core.me.id });
+      if (!activeInvite && data.invites && data.invites.length) {
+        activeInvite = data.invites.sort((a,b) => b.created - a.created)[0];
+        $('gameInviteText').textContent = `${activeInvite.fromName}님이 “${activeInvite.roomTitle}”에 초대했습니다. 현재 인원 ${activeInvite.count}/${activeInvite.max}명`;
+        $('gameInviteModal').classList.remove('hidden');
+        $('gameInviteAccept').focus();
+      }
+    } catch (_) {}
+  }
+
+  function startInvitePresence() {
+    clearInterval(invitePollTimer);
+    if (!Core.me) return;
+    pollInvites();
+    invitePollTimer = setInterval(pollInvites, 5000);
+  }
+
+  /* ---------- 상태 표시 ---------- */
+  $('connText').textContent = navigator.onLine ? '정상' : '오프라인';
+  $('connDot').classList.toggle('off', !navigator.onLine);
+
+  /* ---------- 로그인 ---------- */
+  function paintWho() {
+    if (Core.me) {
+      $('whoBox').classList.remove('hidden');
+      $('whoAvatar').textContent = Core.initials(Core.me.name);
+      $('whoAvatar').title = `${Core.me.name} · ${Core.me.dept || ''}`;
+      loginModal.classList.add('hidden');
+    } else {
+      loginBusy = false;
+      $('btnLogin').disabled = false;
+      $('whoBox').classList.add('hidden');
+      loginModal.classList.remove('hidden');
+      setTimeout(() => $('inName').focus(), 60);
+    }
+  }
+
+  function doLogin() {
+    if (loginBusy || Core.me) return;
+    loginBusy = true;
+    $('btnLogin').disabled = true;
+    try {
+      Core.login($('inName').value, $('inDept').value);
+      paintWho();
+      Core.toast('환영합니다, ' + Core.me.name + '님');
+      if (pendingJoinRoomId) handleJoinLink();
+      else offerRejoin();
+      startInvitePresence();
+    } catch (e) {
+      loginBusy = false;
+      $('btnLogin').disabled = false;
+      Core.toast(e.message);
+    }
+  }
+
+  $('btnLogin').addEventListener('click', doLogin);
+  $('inName').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('inDept').focus(); });
+  $('inDept').addEventListener('keydown', (e) => { if (e.key === 'Enter') doLogin(); });
+
+  $('btnLogout').addEventListener('click', () => {
+    Core.logout();
+    paintWho();
+  });
+  ['railNewRoom'].forEach((id) => {
+    $(id).addEventListener('click', () => {
+      if (!Core.me) { paintWho(); return; }
+      openNewRoom();
+    });
+  });
+  document.querySelectorAll('[data-open-guide]').forEach((button) => {
+    button.addEventListener('click', () => $('guideModal').classList.remove('hidden'));
+  });
+
+  /* ---------- 초대 링크로 들어온 경우 ---------- */
+  async function handleJoinLink() {
+    const roomId = pendingJoinRoomId;
+    if (!roomId || !Core.me) return;
+    pendingJoinRoomId = null;
+
+    const roomsNow = (await Core.store.get('rooms')) || {};
+    const room = roomsNow[roomId];
+    if (!room) {
+      Core.toast('링크의 자료실을 찾을 수 없습니다. 이미 끝났거나 삭제되었을 수 있습니다.');
+      return;
+    }
+    if (room.players && room.players[Core.me.id]) {
+      location.href = Core.GAMES[room.game].file + '?room=' + roomId;
+      return;
+    }
+    let pin = '';
+    if (room.locked) pin = prompt('이 자료실은 접근 코드가 필요합니다. 코드를 입력해 주세요.') || '';
+    try {
+      await Core.joinRoom(roomId, pin);
+      location.href = Core.GAMES[room.game].file + '?room=' + roomId;
+    } catch (err) {
+      Core.toast(err.message || '입장하지 못했습니다.');
+    }
+  }
+
+  /* ---------- 재접속 제안 ---------- */
+  async function offerRejoin() {
+    if (!Core.me) return;
+    if (sessionStorage.getItem('table9:suppressRejoinOnce') === '1') {
+      sessionStorage.removeItem('table9:suppressRejoinOnce');
+      return;
+    }
+    const last = Core.getLastRoom();
+    if (!last) return;
+    const all = await Core.listRooms();
+    const r = all.find((x) => x.id === last && x.players && x.players[Core.me.id]);
+    if (!r) return;
+    if (r.phase === 'over') {
+      localStorage.removeItem('table9:lastRoom');
+      return;
+    }
+    if (confirm(`이전 작업 자료실 "${r.title}"을 계속 여시겠습니까?`)) {
+      location.href = Core.GAMES[r.game].file + '?room=' + r.id;
+    } else {
+      await Core.leaveRoom(r.id).catch(() => {});
+    }
+  }
+
+  /* ---------- 방 목록 ---------- */
+  function paintRooms() {
+    const list = rooms;
+    $('roomCount').textContent = rooms.length;
+    const waiting = rooms.filter((r) => r.phase === 'lobby').length;
+    const playing = rooms.length - waiting;
+    const users = rooms.reduce((n, r) => n + Object.values(r.players || {})
+      .filter((p) => !p.bot && !Core.isStale(p)).length, 0);
+    $('kpiWaiting').textContent = waiting;
+    $('kpiPlaying').textContent = playing;
+    $('kpiUsers').textContent = users;
+
+    if (!list.length) {
+      $('roomList').innerHTML =
+        '<div class="empty-state">아직 열린 자료실이 없습니다.<br>위에서 업무 유형을 고르거나 자료실을 만들어 주세요.</div>';
+      return;
+    }
+
+    $('roomList').innerHTML = list.map((r) => {
+      const g = Core.GAMES[r.game];
+      const ppl = Object.values(r.players || {});
+      const alive = ppl.filter((p) => !Core.isStale(p)).length;
+      const full = ppl.length >= r.maxSeats;
+      const mine = r.players && r.players[Core.me?.id];
+      const playing = r.phase !== 'lobby';
+
+      let label = '업무 열기', dis = '';
+      if (mine) label = '계속하기';
+      else if (playing) { label = '처리 중'; dis = 'disabled'; }
+      else if (full) { label = '정원 마감'; dis = 'disabled'; }
+      if (isAdmin) { label = '관리자 관전'; dis = ''; }
+
+      const gameCode = {
+        outlaw: 'BANG',
+        pass: 'NO THANKS',
+        ladder: 'DALMUTI'
+      }[r.game] || String(r.game || '').toUpperCase();
+
+      return `
+        <div class="room-row">
+          <span class="tag ${r.game}">
+            <span class="tag-desktop">${g.name.split(' ')[0]}</span>
+            <span class="tag-mobile">${gameCode}</span>
+          </span>
+          <div>
+            <div class="room-title">${Core.esc(r.title)}${r.locked ? ' 🔒' : ''}</div>
+            <div class="room-sub">${playing ? '처리 중' : '접수 대기'} · 접속 ${alive}명</div>
+          </div>
+          <div class="room-count ${full ? 'full' : ''}">${ppl.length}/${r.maxSeats}</div>
+          <button class="btn btn-sm ${mine ? 'btn-primary' : ''}"
+                  data-join="${r.id}" ${dis}>${label}</button>
+        </div>${mine && !playing ? `
+        <div class="room-invite-row" data-room-invite="${r.id}">
+          <button type="button" class="btn btn-sm btn-ghost" data-copy="${r.id}">🔗 초대 링크 복사</button>
+        </div>` : ''}`;
+    }).join('');
+  }
+
+  function paintAdmin() {
+    $('adminPanel').classList.toggle('hidden', !isAdmin);
+    if (!isAdmin) return;
+    const active = rooms.filter((r) => Date.now() - (r.updated || 0) < 10 * 60 * 1000);
+    const people = active.reduce((n, r) => n + Object.keys(r.players || {}).length, 0);
+    $('adminSummary').innerHTML =
+      `<span>활성 자료실 <b>${active.length}</b></span><span>접속 참가자 <b>${people}</b></span>` +
+      `<span>전체 저장 자료실 <b>${rooms.length}</b></span>`;
+    $('adminRooms').innerHTML = rooms.length ? rooms.map((r) => {
+      const ps = Object.values(r.players || {}).sort((a, b) => a.seat - b.seat);
+      const stale = Date.now() - (r.updated || 0) >= 10 * 60 * 1000;
+      return `<article class="admin-room ${stale ? 'stale' : ''}">
+        <div class="admin-room-head">
+          <div><span class="tag ${r.game}">${Core.esc(Core.GAMES[r.game]?.name || r.game)}</span>
+          <b>${Core.esc(r.title)}</b> <small>${Core.esc(r.id)} · ${Core.esc(r.phase)}</small></div>
+          <div class="admin-actions">
+            <button class="btn btn-sm btn-primary" data-admin-watch="${r.id}" data-game="${r.game}">관전</button>
+            <button class="btn btn-sm" data-admin="skip_turn" data-room="${r.id}">턴 넘기기</button>
+            <button class="btn btn-sm" data-admin="reset_game" data-room="${r.id}">세션 초기화</button>
+            <button class="btn btn-sm btn-danger" data-admin="delete_room" data-room="${r.id}">자료실 삭제</button>
+          </div>
+        </div>
+        <div class="admin-players">${ps.map((p) => `<div class="admin-player">
+          <span><b>${Core.esc(p.name)}</b> ${p.bot ? '· AI' : ''} ${Core.isStale(p) ? '· 오프라인' : '· 접속'}</span>
+          <span>
+            ${p.bot ? '' : `<button class="btn btn-sm" data-admin="convert_ai" data-room="${r.id}" data-player="${p.id}">AI 전환</button>`}
+            <button class="btn btn-sm btn-danger" data-admin="kick_player" data-room="${r.id}" data-player="${p.id}">강제 퇴장</button>
+          </span>
+        </div>`).join('') || '<div class="muted">참가자 없음</div>'}</div>
+      </article>`;
+    }).join('') : '<div class="empty-state">저장된 자료실이 없습니다.</div>';
+
+    document.querySelectorAll('[data-admin-watch]').forEach((btn) => btn.addEventListener('click', () => {
+      const game = btn.dataset.game;
+      const id = btn.dataset.adminWatch;
+      location.href = Core.GAMES[game].file + '?room=' + encodeURIComponent(id) + '&spectate=1';
+    }));
+
+    document.querySelectorAll('[data-admin]').forEach((btn) => btn.addEventListener('click', async () => {
+      const cmd = btn.dataset.admin;
+      const labels = { delete_room: '자료실을 완전히 삭제', reset_game: '세션을 대기 상태로 초기화',
+        kick_player: '참가자를 강제로 퇴장', convert_ai: '참가자를 AI로 전환', skip_turn: '현재 턴을 강제로 넘김' };
+      if (!confirm(`${labels[cmd]}하시겠습니까?`)) return;
+      btn.disabled = true;
+      try {
+        await Core.adminAction(btn.dataset.room, cmd, btn.dataset.player);
+        Core.toast('관리자 작업을 완료했습니다.');
+      } catch (e) {
+        Core.toast(e.message);
+      } finally {
+        btn.disabled = false;
+      }
+    }));
+  }
+
+  Core.onRooms((list) => { rooms = list; paintRooms(); paintAdmin(); });
+
+  $('btnAdmin').addEventListener('click', () => {
+    if (isAdmin) {
+      $('adminPanel').scrollIntoView({ behavior: 'smooth' });
+      return;
+    }
+    $('adminModal').classList.remove('hidden');
+    setTimeout(() => $('adminPassword').focus(), 50);
+  });
+  $('btnAdminLoginOpen').addEventListener('click', () => {
+    loginModal.classList.add('hidden');
+    $('adminModal').classList.remove('hidden');
+    setTimeout(() => $('adminPassword').focus(), 50);
+  });
+  $('adminCancel').addEventListener('click', () => {
+    $('adminModal').classList.add('hidden');
+    if (!Core.me) loginModal.classList.remove('hidden');
+  });
+  $('adminLogin').addEventListener('click', async () => {
+    try {
+      await Core.adminLogin($('adminPassword').value);
+      isAdmin = true;
+      $('adminPassword').value = '';
+      $('adminModal').classList.add('hidden');
+      paintAdmin();
+      $('adminPanel').scrollIntoView({ behavior: 'smooth' });
+      Core.toast('관리자 모드가 활성화되었습니다.');
+    } catch (e) { Core.toast(e.message); }
+  });
+  $('adminPassword').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') $('adminLogin').click();
+  });
+  $('adminLogout').addEventListener('click', async () => {
+    await Core.adminLogout().catch(() => {});
+    isAdmin = false;
+    paintAdmin();
+  });
+  Core.adminStatus().then((s) => { isAdmin = !!s.admin; paintAdmin(); }).catch(() => {});
+
+  $('btnGuide').addEventListener('click', (e) => {
+    e.preventDefault();
+    $('guideModal').classList.remove('hidden');
+    $('guideClose').focus();
+  });
+  $('sideGuide').addEventListener('click', (e) => {
+    e.preventDefault();
+    $('guideModal').classList.remove('hidden');
+    $('guideClose').focus();
+  });
+  $('officeDate').textContent = new Intl.DateTimeFormat('ko-KR', {
+    year: 'numeric', month: '2-digit', day: '2-digit', weekday: 'short'
+  }).format(new Date());
+  function updateLeaveTimer() {
+    const now = new Date();
+    const leave = new Date(now);
+    leave.setHours(18, 0, 0, 0);
+    const remain = Math.max(0, leave.getTime() - now.getTime());
+    const totalSeconds = Math.floor(remain / 1000);
+    const hh = String(Math.floor(totalSeconds / 3600)).padStart(2, '0');
+    const mm = String(Math.floor((totalSeconds % 3600) / 60)).padStart(2, '0');
+    const ss = String(totalSeconds % 60).padStart(2, '0');
+    $('leaveTimer').textContent = `${hh}:${mm}:${ss}`;
+  }
+  updateLeaveTimer();
+  setInterval(updateLeaveTimer, 1000);
+
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredInstallPrompt = e;
+  });
+  $('btnHomeInstall').addEventListener('click', async () => {
+    if (deferredInstallPrompt) {
+      deferredInstallPrompt.prompt();
+      await deferredInstallPrompt.userChoice.catch(() => {});
+      deferredInstallPrompt = null;
+      return;
+    }
+    $('installModal').classList.remove('hidden');
+    $('installClose').focus();
+  });
+  $('installClose').addEventListener('click', () => $('installModal').classList.add('hidden'));
+  $('installModal').addEventListener('click', (e) => {
+    if (e.target === $('installModal')) $('installModal').classList.add('hidden');
+  });
+  if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone) {
+    $('btnHomeInstall').classList.add('hidden');
+  }
+  $('guideClose').addEventListener('click', () => $('guideModal').classList.add('hidden'));
+  $('guideModal').addEventListener('click', (e) => {
+    if (e.target === $('guideModal')) $('guideModal').classList.add('hidden');
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') $('guideModal').classList.add('hidden');
+  });
+
+  $('roomList').addEventListener('click', async (e) => {
+    const copyBtn = e.target.closest('[data-copy]');
+    if (copyBtn) { Core.copyInviteLink(copyBtn.dataset.copy); return; }
+
+    const b = e.target.closest('[data-join]');
+    if (!b) return;
+
+    const id = b.dataset.join;
+    const room = rooms.find((r) => r.id === id);
+    if (!room) return;
+    if (isAdmin) {
+      location.href = Core.GAMES[room.game].file + '?room=' + encodeURIComponent(id) + '&spectate=1';
+      return;
+    }
+    if (!Core.me) { paintWho(); return; }
+
+    let pin = '';
+    if (room.locked && !(room.players && room.players[Core.me.id])) {
+      pin = prompt('접근 코드를 입력해 주세요.') || '';
+    }
+    try {
+      b.disabled = true;
+      if (room.players && room.players[Core.me.id]) {
+        localStorage.setItem('table9:lastRoom', id);
+        location.href = Core.GAMES[room.game].file + '?room=' + id;
+        return;
+      }
+      await Core.joinRoom(id, pin);
+      location.href = Core.GAMES[room.game].file + '?room=' + id;
+    } catch (err) {
+      Core.toast(err.message);
+      b.disabled = false;
+    }
+  });
+
+  /* ---------- 방 만들기 ---------- */
+  function seatOptions(game) {
+    const g = Core.GAMES[game];
+    const sel = $('nrSeats');
+    sel.innerHTML = '';
+    for (let i = g.min; i <= g.max; i++) {
+      sel.insertAdjacentHTML('beforeend',
+        `<option value="${i}" ${i === g.max ? 'selected' : ''}>${i}명</option>`);
+    }
+  }
+
+  function openNewRoom(game) {
+    if (!Core.me) { paintWho(); return; }
+    if (game) $('nrGame').value = game;
+    seatOptions($('nrGame').value);
+    $('nrPin').value = '';
+    newRoomModal.classList.remove('hidden');
+    setTimeout(() => $('nrGame').focus(), 60);
+  }
+
+  $('nrGame').addEventListener('change', () => seatOptions($('nrGame').value));
+  $('nrCancel').addEventListener('click', () => newRoomModal.classList.add('hidden'));
+
+  document.querySelectorAll('[data-new]').forEach((a) => {
+    a.addEventListener('click', (e) => {
+      e.preventDefault();
+      openNewRoom(a.dataset.new);
+    });
+  });
+
+  $('nrCreate').addEventListener('click', async () => {
+    const game = $('nrGame').value;
+    const pin = $('nrPin').value.trim();
+    try {
+      const room = await Core.createRoom({
+        game,
+        maxSeats: $('nrSeats').value,
+        locked: !!pin,
+        pin
+      });
+      await Core.joinRoom(room.id, pin);
+      await Core.copyInviteLink(room.id);
+      setTimeout(() => { location.href = Core.GAMES[game].file + '?room=' + room.id; }, 900);
+    } catch (err) {
+      Core.toast(err.message);
+    }
+  });
+
+  /* ---------- 시작 ---------- */
+  $('gameInviteAccept').addEventListener('click', () => answerInvite('accepted'));
+  $('gameInviteDecline').addEventListener('click', () => answerInvite('declined'));
+  window.addEventListener('pagehide', () => {
+    if (Core.me && !location.hostname.endsWith('github.io')) navigator.sendBeacon('api.php', new Blob([JSON.stringify({ action:'presence_leave', userId:Core.me.id })], {type:'application/json'}));
+  });
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) pollInvites(); });
+
+  paintWho();
+  if (Core.me) {
+    if (pendingJoinRoomId) handleJoinLink();
+    else offerRejoin();
+    startInvitePresence();
+  }
+})();
+</script>
+</body>
+</html>

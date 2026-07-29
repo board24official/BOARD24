@@ -1,0 +1,1564 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>NO THANKS — BOARD 24</title>
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<meta name="theme-color" content="#1B1D2A">
+<link rel="stylesheet" href="assets/app.css">
+<style>
+/* ---------- PASS 전용 ---------- */
+.pass-stage {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 26px;
+  padding: 10px 0 30px;
+}
+
+.deck-info {
+  display: flex;
+  gap: 30px;
+  font-family: var(--f-mono);
+  font-size: 13px;
+  color: #586375;
+}
+.deck-info b { color: #202633; font-weight: 700; font-size: 16px; display: block; }
+
+/* 중앙 타일 */
+.tile-stage { position: relative; display: grid; place-items: center; min-height: 210px; }
+.tile {
+  width: 132px; height: 176px;
+  border: 1px solid #cbd4e0;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #202633;
+  display: grid;
+  place-items: center;
+  box-shadow: 0 4px 10px rgba(0,0,0,.35), 0 22px 46px rgba(0,0,0,.32);
+  position: relative;
+  animation: none !important;
+  transition: none !important;
+  transform: none !important;
+}
+
+.tile:hover,
+.tile:focus,
+.tile:active {
+  transform: none !important;
+}
+.tile-stage,
+.tile,
+.pot,
+.chip-coin {
+  will-change: auto !important;
+}
+
+.tile .num {
+  font-family: var(--f-display);
+  font-size: 68px;
+  line-height: 1;
+  font-weight: 400;
+}
+.tile .corner {
+  position: absolute;
+  font-family: var(--f-mono);
+  font-size: 12px;
+  color: #596579;
+}
+.tile .corner.tl { top: 9px; left: 11px; }
+.tile .corner.br { bottom: 9px; right: 11px; transform: rotate(180deg); }
+
+/* 타일 위에 쌓인 포인트 칩 */
+.pot {
+  position: absolute;
+  bottom: -14px;
+  display: flex;
+  gap: 3px;
+  flex-wrap: wrap;
+  justify-content: center;
+  max-width: 190px;
+}
+.chip-coin {
+  width: 22px; height: 22px;
+  border-radius: 50%;
+  background: var(--brass);
+  border: 1.5px solid #a8802f;
+  box-shadow: 0 2px 4px rgba(0,0,0,.35);
+  animation: none !important;
+  transition: none !important;
+  transform: none !important;
+}
+.pot-label {
+  position: absolute;
+  bottom: -42px;
+  font-family: var(--f-mono);
+  font-size: 12px;
+  color: var(--brass);
+  white-space: nowrap;
+}
+
+/* 액션 */
+.actions { display: flex; gap: 10px; align-items: center; }
+.turn-note {
+  font-family: var(--f-mono);
+  font-size: 13px;
+  color: #536176;
+  text-align: center;
+  min-height: 1.4em;
+}
+
+/* 좌석 리스트 */
+.seats {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 9px;
+  width: 100%;
+  max-width: 820px;
+}
+.seat .chips {
+  font-family: var(--f-mono);
+  font-size: 12px;
+  color: #2868d8;
+  margin-top: 4px;
+}
+.seat .taken {
+  display: flex; flex-wrap: wrap; gap: 3px;
+  margin-top: 7px;
+}
+.mini {
+  font-family: var(--f-mono);
+  font-size: 11.5px;
+  padding: 2px 5px;
+  border-radius: 2px;
+  background: #f1f4f8;
+  border: 1px solid var(--line);
+  color: #465367;
+}
+.mini.run { background: #3971e7; color: #ffffff; border-color: #3971e7; font-weight: 700; }
+
+.pass-stage .seat { background: #ffffff; color: #202633; }
+.pass-stage .seat.active {
+  border-color: #3971e7;
+  background: #eaf2ff;
+  color: #16233a;
+  box-shadow: 0 0 0 1px #3971e7 inset;
+}
+.pass-stage .seat .nm { color: #202633; font-weight: 700; }
+.pass-stage .seat .st { color: #5b6678; font-size: 12px; }
+.pass-stage .seat.active .st,
+.pass-stage .seat.active .nm { color: #16233a; }
+
+/* 로비 */
+.lobby { max-width: 600px; margin: 30px auto; }
+.lobby h2 { font-family: var(--f-display); font-size: 34px; margin: 0 0 4px; font-weight: 400; }
+.lobby-players { display: flex; flex-direction: column; gap: 7px; margin: 22px 0; }
+.lobby-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 11px 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--ink-2);
+}
+.lobby-row .badge {
+  font-family: var(--f-mono); font-size: 10.5px;
+  padding: 2px 6px; border-radius: 2px;
+  background: var(--ink-3); color: var(--cream-dim);
+}
+.lobby-row .badge.ready { background: var(--green); color: #fff; }
+.lobby-row .badge.host { background: var(--brass); color: var(--ink); }
+
+/* 결과 */
+.result-table { width: 100%; border-collapse: collapse; margin-top: 16px; }
+.result-table th, .result-table td {
+  padding: 9px 10px; text-align: left;
+  border-bottom: 1px solid var(--line);
+  font-size: 13.5px;
+}
+.result-table th {
+  font-family: var(--f-mono); font-size: 11px;
+  text-transform: uppercase; letter-spacing: .1em;
+  color: var(--cream-dim); font-weight: 500;
+}
+.result-table td.n { font-family: var(--f-mono); text-align: right; }
+.result-table tr.win td { color: var(--brass); font-weight: 600; }
+
+@media (max-width: 860px) {
+  .pass-stage { gap: 5px; padding: 1px 0 3px; }
+  .deck-info {
+    width: 100%; justify-content: space-around; gap: 4px;
+    padding: 0 5px; font-size: 7.5px; text-align: center;
+  }
+  .deck-info b { margin-top: 1px; font-size: 10px; }
+  .tile-stage { min-height: 118px; padding: 4px 0 22px; }
+  .tile { width: 68px; height: 90px; border-radius: 6px; }
+  .tile .num { font-size: 35px; }
+  .tile .corner { font-size: 7px; }
+  .tile .corner.tl { top: 5px; left: 6px; }
+  .tile .corner.br { right: 6px; bottom: 5px; }
+  .pot { bottom: -7px; gap: 2px; max-width: 105px; }
+  .chip-coin { width: 11px; height: 11px; border-width: 1px; }
+  .pot-label { display: none; }
+  .turn-note {
+    min-height: 20px; margin-top: 0; padding: 4px 8px;
+    border-radius: 5px; background: #eef4ff;
+    font-size: 8.5px; line-height: 1.35;
+  }
+  .actions {
+    position: sticky;
+    bottom: -8px;
+    z-index: 12;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 6px;
+    width: 100%;
+    padding: 7px;
+    border: 1px solid #d8e0eb;
+    border-radius: 9px;
+    background: rgba(255,255,255,.97);
+    box-shadow: 0 -5px 16px rgba(31,49,86,.10);
+  }
+  .actions .btn {
+    width: 100%;
+    min-height: 44px;
+    padding: 8px 6px;
+    font-size: 10.5px;
+    font-weight: 700;
+    line-height: 1.2;
+    touch-action: manipulation;
+  }
+  .seats { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 3px; max-width: none; }
+  .pass-stage .seat { min-width: 0; min-height: 0; padding: 4px; border-radius: 6px; }
+  .pass-stage .seat .nm {
+    overflow: hidden;
+    font-size: 8.5px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .pass-stage .seat .st { font-size: 6.5px; line-height: 1.2; }
+  .seat .chips { margin-top: 2px; font-size: 6.5px; }
+  .seat .taken { gap: 2px; margin-top: 3px; }
+  .mini { padding: 1px 3px; font-size: 6.5px; }
+}
+
+/* 공통 로비 초대 및 차례 순서 표시 */
+.invite-panel { margin-top:14px; padding:13px; border:1px solid var(--line); border-radius:9px; background:#f8faff; }
+.invite-panel-head { display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:9px; }
+.invite-panel-head b { color:#202633; font-size:13px; }
+.invite-panel-head small { color:#778398; font-size:10px; }
+.invite-people { display:flex; flex-direction:column; gap:6px; }
+.invite-person { display:flex; align-items:center; gap:8px; padding:8px 9px; border:1px solid #dce4ef; border-radius:7px; background:#fff; }
+.invite-person .person-info { min-width:0; flex:1; }
+.invite-person .person-info b { display:block; overflow:hidden; color:#263148; font-size:12px; text-overflow:ellipsis; white-space:nowrap; }
+.invite-person .person-info small { display:block; margin-top:1px; color:#7a8597; font-size:10px; }
+.invite-person button { min-width:62px; padding:6px 9px; font-size:10.5px; }
+.invite-empty { padding:10px; color:#7a8597; font-size:11px; text-align:center; }
+.turn-sequence { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:7px; margin:0 0 10px; }
+.turn-sequence > div { min-width:0; padding:9px 10px; border:1px solid #d8e0eb; border-radius:8px; background:#fff; text-align:center; }
+.turn-sequence span { display:block; color:#7a8597; font-size:10px; }
+.turn-sequence b { display:block; overflow:hidden; margin-top:3px; color:#263148; font-size:13px; text-overflow:ellipsis; white-space:nowrap; }
+.turn-sequence .current { border-color:#3971e7; background:#eef4ff; box-shadow:0 0 0 1px #3971e7 inset; }
+.turn-sequence .current b { color:#2859bd; }
+@media (max-width:560px){ .turn-sequence{gap:4px}.turn-sequence>div{padding:7px 5px}.turn-sequence b{font-size:11px}.turn-sequence span{font-size:8.5px} }
+
+
+/* v2.9.47 — 방장 참가자 내보내기 버튼을 X 아이콘으로 표시 */
+.lobby-remove {
+  display: inline-grid !important;
+  place-items: center !important;
+  width: 26px !important;
+  min-width: 26px !important;
+  height: 26px !important;
+  padding: 0 !important;
+  border-radius: 50% !important;
+  font-size: 17px !important;
+  line-height: 1 !important;
+  font-weight: 500 !important;
+}
+
+/* v2.9.72 — 노땡스 중앙 안건서 레이아웃 */
+.tile-stage {
+  width: min(660px, 100%);
+  min-height: 250px !important;
+  display: grid !important;
+  grid-template-columns: minmax(220px, 290px) minmax(230px, 1fr);
+  align-items: stretch !important;
+  gap: 18px;
+  padding: 8px 0 !important;
+}
+.task-sheet {
+  min-height: 230px;
+  border: 1px solid #cbd5e2;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 12px 28px rgba(31,49,86,.14);
+  overflow: hidden;
+  color: #202633;
+  display: flex;
+  flex-direction: column;
+}
+.task-sheet-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 14px;
+  border-bottom: 1px solid #dfe6ef;
+  background: #f6f9fd;
+}
+.task-badge {
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: #e8f0ff;
+  color: #2e63c5;
+  font-size: 10px;
+  font-weight: 800;
+}
+.task-code { color: #7a879a; font: 10px var(--f-mono); }
+.task-sheet-body {
+  flex: 1;
+  padding: 24px 18px 18px;
+  text-align: left;
+}
+.task-sheet-body small { display: block; color: #7a879a; font-size: 11px; }
+.task-sheet-body strong {
+  display: block;
+  margin-top: 4px;
+  color: #17243a;
+  font-size: 66px;
+  line-height: 1;
+  letter-spacing: -.05em;
+}
+.task-sheet-body p {
+  margin: 15px 0 0;
+  color: #667286;
+  font-size: 12px;
+  line-height: 1.55;
+}
+.task-sheet-foot {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 11px 14px;
+  border-top: 1px solid #e3e8f0;
+  background: #fbfcfe;
+  font-size: 11px;
+}
+.task-sheet-foot span { color: #7a879a; }
+.task-sheet-foot b { color: #243654; }
+.point-tray {
+  min-height: 230px;
+  padding: 16px;
+  border: 1px solid #d8e1ec;
+  border-radius: 12px;
+  background: #f8fafd;
+  color: #202633;
+  display: flex;
+  flex-direction: column;
+}
+.point-tray-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #e1e7ef;
+  color: #69768a;
+  font-size: 12px;
+}
+.point-tray-head b { color: #2c63cf; font-size: 24px; }
+.point-tray .pot {
+  position: static !important;
+  flex: 1;
+  max-width: none !important;
+  display: flex !important;
+  align-content: flex-start;
+  justify-content: flex-start !important;
+  gap: 8px !important;
+  padding: 18px 2px 2px;
+}
+.point-tray .chip-coin {
+  width: 28px !important;
+  height: 28px !important;
+  border: 2px solid #2f67d3 !important;
+  background: #e7efff !important;
+  box-shadow: inset 0 0 0 5px #3971e7, 0 2px 5px rgba(31,49,86,.12) !important;
+}
+.point-empty { color: #9aa5b5; font-size: 12px; }
+.tile, .pot-label { display: none !important; }
+
+@media (max-width: 860px) {
+  .tile-stage {
+    width: 100%;
+    min-height: 0 !important;
+    grid-template-columns: 1fr;
+    gap: 7px;
+    padding: 2px 0 !important;
+  }
+  .task-sheet { min-height: 122px; border-radius: 9px; }
+  .task-sheet-head { padding: 6px 9px; }
+  .task-badge { padding: 2px 6px; font-size: 8px; }
+  .task-code { font-size: 8px; }
+  .task-sheet-body { padding: 10px 11px 8px; }
+  .task-sheet-body small { font-size: 8px; }
+  .task-sheet-body strong { margin-top: 1px; font-size: 38px; }
+  .task-sheet-body p { margin-top: 5px; font-size: 8px; line-height: 1.35; }
+  .task-sheet-foot { padding: 6px 9px; font-size: 8px; }
+  .point-tray { min-height: 58px; padding: 7px 9px; border-radius: 9px; }
+  .point-tray-head { padding-bottom: 5px; font-size: 8px; }
+  .point-tray-head b { font-size: 15px; }
+  .point-tray .pot { padding-top: 7px; gap: 4px !important; }
+  .point-tray .chip-coin { width: 15px !important; height: 15px !important; border-width: 1px !important; box-shadow: inset 0 0 0 3px #3971e7 !important; }
+  .point-empty { font-size: 8px; }
+}
+
+
+
+/* v2.9.73 — 노땡스 현황 카드 및 모바일 레이아웃 정리 */
+.deck-info {
+  width: min(760px, 100%) !important;
+  display: grid !important;
+  grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  gap: 10px !important;
+  margin: 0 auto !important;
+  padding: 0 !important;
+  font-family: var(--f-body) !important;
+}
+.deck-info > span {
+  position: relative;
+  min-width: 0;
+  min-height: 76px;
+  display: flex !important;
+  flex-direction: column;
+  justify-content: center;
+  padding: 12px 14px;
+  border: 1px solid #d9e1ec;
+  border-radius: 12px;
+  background: #fff;
+  color: #788497 !important;
+  font-size: 11px !important;
+  line-height: 1.25;
+  box-shadow: 0 2px 8px rgba(31,49,86,.05);
+  overflow: hidden;
+}
+.deck-info > span::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: #3971e7;
+}
+.deck-info > span:nth-child(2)::before { background: #2e8b68; }
+.deck-info > span:nth-child(3)::before { background: #d58b24; }
+.deck-info > span:nth-child(4)::before { background: #775ec9; }
+.deck-info b {
+  display: block !important;
+  min-width: 0;
+  margin-top: 5px !important;
+  color: #202b3d !important;
+  font-size: 21px !important;
+  font-weight: 800 !important;
+  line-height: 1.15;
+  letter-spacing: -.02em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.deck-info > span:last-child b { font-size: 17px !important; }
+
+.pass-stage {
+  width: min(980px, 100%);
+  margin: 0 auto;
+}
+.tile-stage { width: 100%; }
+.seats { margin-top: 2px; }
+
+@media (max-width: 860px) {
+  .pass-stage {
+    width: 100% !important;
+    gap: 10px !important;
+    padding: 4px 0 12px !important;
+  }
+  .deck-info {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 7px !important;
+    padding: 0 2px !important;
+  }
+  .deck-info > span {
+    min-height: 61px !important;
+    padding: 9px 10px 8px 13px !important;
+    border-radius: 9px !important;
+    font-size: 9px !important;
+    text-align: left !important;
+  }
+  .deck-info > span::before { width: 3px; }
+  .deck-info b {
+    margin-top: 3px !important;
+    font-size: 17px !important;
+  }
+  .deck-info > span:last-child b { font-size: 14px !important; }
+
+  .tile-stage {
+    grid-template-columns: 1fr !important;
+    gap: 8px !important;
+    min-height: 0 !important;
+    padding: 0 2px !important;
+  }
+  .task-sheet,
+  .point-tray {
+    width: 100% !important;
+    max-width: none !important;
+  }
+  .task-sheet { min-height: 148px !important; }
+  .task-sheet-head { padding: 8px 11px !important; }
+  .task-sheet-body { padding: 12px 13px 10px !important; }
+  .task-sheet-body small { font-size: 9px !important; }
+  .task-sheet-body strong { font-size: 44px !important; }
+  .task-sheet-body p { font-size: 9px !important; line-height: 1.45 !important; }
+  .task-sheet-foot { padding: 8px 11px !important; font-size: 9px !important; }
+  .point-tray { min-height: 72px !important; padding: 9px 11px !important; }
+  .point-tray-head { font-size: 9px !important; }
+  .point-tray-head b { font-size: 18px !important; }
+
+  .turn-note {
+    width: 100%;
+    min-height: 34px !important;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 7px 10px !important;
+    font-size: 10px !important;
+  }
+  .actions {
+    position: static !important;
+    bottom: auto !important;
+    padding: 6px !important;
+    margin-top: 0 !important;
+  }
+  .actions .btn {
+    min-height: 46px !important;
+    font-size: 11px !important;
+  }
+  .seats {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 7px !important;
+    padding: 0 2px;
+  }
+  .pass-stage .seat {
+    min-width: 0;
+    padding: 9px !important;
+  }
+  .pass-stage .seat .nm { font-size: 11px !important; }
+  .pass-stage .seat .st,
+  .pass-stage .seat .chips { font-size: 9px !important; }
+  .mini { font-size: 8.5px !important; }
+}
+
+@media (max-width: 420px) {
+  .deck-info > span { min-height: 58px !important; }
+  .task-sheet-body p { display: none; }
+  .task-sheet { min-height: 125px !important; }
+  .seats { grid-template-columns: 1fr 1fr !important; }
+}
+
+
+
+/* v2.9.74 — 과한 장식 제거, 심플한 업무 현황 레이아웃 */
+.deck-info {
+  width: min(700px, 100%) !important;
+  gap: 0 !important;
+  border: 1px solid #dfe5ed;
+  border-radius: 10px;
+  background: #fff;
+  overflow: hidden;
+  box-shadow: none !important;
+}
+.deck-info > span {
+  min-height: 66px !important;
+  padding: 11px 16px !important;
+  border: 0 !important;
+  border-right: 1px solid #e7ebf1 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  color: #7a8494 !important;
+  font-size: 10px !important;
+}
+.deck-info > span:last-child { border-right: 0 !important; }
+.deck-info > span::before { display: none !important; }
+.deck-info b {
+  margin-top: 4px !important;
+  color: #202733 !important;
+  font-size: 20px !important;
+  font-weight: 700 !important;
+}
+.deck-info > span:last-child b { font-size: 15px !important; }
+
+.tile-stage {
+  gap: 14px !important;
+  padding: 8px 0 !important;
+}
+.task-sheet,
+.point-tray {
+  border-color: #dfe5ed !important;
+  box-shadow: none !important;
+  background: #fff !important;
+}
+.task-sheet { border-radius: 10px !important; }
+.task-sheet-head,
+.task-sheet-foot { background: #f8fafc !important; }
+.task-badge {
+  border: 0 !important;
+  background: #edf2f8 !important;
+  color: #4f5d70 !important;
+}
+.task-sheet-body strong { color: #1f2937 !important; }
+.point-tray {
+  border-radius: 10px !important;
+  min-height: 118px !important;
+}
+.point-tray-head { border-bottom-color: #e8edf3 !important; }
+.point-tray .chip-coin {
+  box-shadow: none !important;
+  border-color: #9db5df !important;
+  background: #e7eefb !important;
+}
+.actions {
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+}
+.actions .btn { border-radius: 8px !important; }
+.turn-note {
+  border: 0 !important;
+  background: transparent !important;
+  color: #6d7889 !important;
+}
+.pass-stage .seat {
+  border-radius: 8px !important;
+  box-shadow: none !important;
+}
+
+@media (max-width: 860px) {
+  .pass-stage { gap: 9px !important; }
+  .deck-info {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    border-radius: 9px !important;
+  }
+  .deck-info > span {
+    min-height: 56px !important;
+    padding: 9px 11px !important;
+    border-right: 1px solid #e7ebf1 !important;
+    border-bottom: 1px solid #e7ebf1 !important;
+  }
+  .deck-info > span:nth-child(2n) { border-right: 0 !important; }
+  .deck-info > span:nth-child(n+3) { border-bottom: 0 !important; }
+  .deck-info b { font-size: 17px !important; }
+  .deck-info > span:last-child b { font-size: 13px !important; }
+  .tile-stage { gap: 9px !important; padding: 2px 0 !important; }
+  .task-sheet { min-height: 132px !important; }
+  .point-tray { min-height: 62px !important; }
+  .actions { gap: 7px !important; }
+  .actions .btn { min-height: 42px !important; }
+  .seats { gap: 6px !important; }
+}
+
+
+/* v2.9.75 — PC 전용 안정형 업무 우선순위 레이아웃 */
+@media (min-width: 861px) {
+  .pass-stage {
+    width: min(860px, calc(100vw - 430px)) !important;
+    min-width: 720px;
+    margin: 0 auto !important;
+    padding: 22px 0 34px !important;
+    gap: 18px !important;
+    align-items: stretch !important;
+  }
+
+  .deck-info {
+    width: 100% !important;
+    min-height: 72px;
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+    margin: 0 !important;
+  }
+  .deck-info > span {
+    min-height: 72px !important;
+    padding: 13px 18px !important;
+  }
+
+  .tile-stage {
+    width: 100% !important;
+    min-height: 288px !important;
+    grid-template-columns: minmax(0, 1.18fr) minmax(280px, .82fr) !important;
+    gap: 18px !important;
+    padding: 0 !important;
+    align-items: stretch !important;
+  }
+  .task-sheet,
+  .point-tray {
+    width: 100% !important;
+    min-height: 288px !important;
+  }
+  .task-sheet-body {
+    padding: 28px 24px 22px !important;
+  }
+  .task-sheet-body strong {
+    font-size: 76px !important;
+  }
+  .point-tray {
+    padding: 20px !important;
+  }
+  .point-tray .pot {
+    display: grid !important;
+    grid-template-columns: repeat(5, 28px) !important;
+    align-content: start !important;
+    justify-content: start !important;
+    gap: 10px !important;
+    padding: 22px 0 0 !important;
+  }
+
+  .turn-note {
+    width: 100% !important;
+    min-height: 28px !important;
+    margin: -2px 0 0 !important;
+    text-align: center !important;
+  }
+  .actions {
+    width: 100% !important;
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 10px !important;
+    margin: 0 !important;
+  }
+  .actions .btn {
+    width: 100% !important;
+    min-height: 48px !important;
+  }
+
+  .seats {
+    width: 100% !important;
+    max-width: none !important;
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+    gap: 10px !important;
+    margin: 2px 0 0 !important;
+  }
+  .pass-stage .seat {
+    min-height: 104px !important;
+    padding: 13px 14px !important;
+  }
+}
+
+@media (min-width: 861px) and (max-width: 1180px) {
+  .pass-stage {
+    width: min(760px, calc(100vw - 390px)) !important;
+    min-width: 640px;
+  }
+  .tile-stage {
+    grid-template-columns: minmax(0, 1.1fr) minmax(250px, .9fr) !important;
+  }
+  .seats { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+}
+</style>
+
+<style id="v2-9-106-pass-mobile-polish">
+/* NO THANKS — 공통/모바일 최종 정리 */
+.game-topbar .gt-title,
+.game-topbar .gt-room,
+.lobby, .lobby-row, .turn-note, .task-sheet, .point-tray,
+.side-pane, .side-pane * {
+  overflow-wrap: anywhere;
+  word-break: keep-all;
+}
+[data-leave] { white-space: nowrap; }
+
+@media (max-width: 860px) {
+  .game-topbar {
+    display: flex !important;
+    align-items: center !important;
+    gap: 5px !important;
+    padding-left: max(7px, env(safe-area-inset-left)) !important;
+    padding-right: max(7px, env(safe-area-inset-right)) !important;
+    overflow: visible !important;
+  }
+  .game-topbar > div:not(.spacer) { min-width: 0 !important; }
+  .game-topbar .gt-title { font-size: 14px !important; white-space: nowrap !important; }
+  .game-topbar .gt-room { max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .game-topbar .header-action {
+    flex: 0 0 auto !important;
+    min-width: 34px !important;
+    width: 34px !important;
+    padding: 0 !important;
+  }
+  .game-topbar .header-label { display: none !important; }
+  .game-topbar .header-icon { font-size: 17px !important; }
+  #sideToggle { flex: 0 0 auto; min-width: 44px; padding: 6px 8px; }
+
+  /* 참가자 현황은 모바일에서도 한 줄 4열 */
+  .seats { grid-template-columns: repeat(4, minmax(0, 1fr)) !important; gap: 4px !important; }
+  .pass-stage .seat { padding: 6px 4px !important; min-height: 76px !important; }
+  .pass-stage .seat .nm { font-size: 9px !important; white-space: normal !important; line-height: 1.2; }
+  .pass-stage .seat .st, .pass-stage .seat .chips { font-size: 7.5px !important; line-height: 1.25; }
+  .seat .taken { max-height: 34px; overflow-y: auto; }
+  .mini { font-size: 7px !important; padding: 1px 2px !important; }
+
+  /* 로비에서는 채팅만 표시 */
+  body[data-game-phase="lobby"] .side-tabs { display: none !important; }
+  body[data-game-phase="lobby"] #logPane { display: none !important; }
+  body[data-game-phase="lobby"] #chatPane { display: flex !important; }
+  body[data-game-phase="lobby"] .side { grid-template-rows: minmax(120px, 1fr) auto !important; }
+
+  /* 게임 중에는 채팅/기록 탭을 모두 사용 */
+  body[data-game-phase="playing"] .side-tabs,
+  body[data-game-phase="over"] .side-tabs { display: flex !important; }
+
+  /* 긴 팝업/모달은 화면 안에서만 스크롤 */
+  .modal-back { padding: max(12px, env(safe-area-inset-top)) 10px max(12px, env(safe-area-inset-bottom)) !important; }
+  .modal {
+    width: min(94vw, 520px) !important;
+    max-height: calc(100dvh - 28px) !important;
+    overflow-y: auto !important;
+    overscroll-behavior: contain;
+  }
+  .bot-paywall .modal-actions { position: sticky; bottom: 0; background: inherit; padding-top: 8px; }
+}
+</style>
+</head>
+<body class="is-game game-pass">
+
+<div class="conn-banner"></div>
+
+<div class="game-shell">
+  <aside class="game-office-nav" aria-label="업무 메뉴">
+    <div class="game-office-logo"><span>B24</span> BOARD 24</div>
+    <div class="game-office-account"><b>통합 운영 워크스페이스</b><small>실시간 업무 처리</small></div>
+    <nav>
+      <div><span>⌂</span> 홈</div>
+      <div><span>▣</span> 진행 업무</div>
+      <div class="active"><span>▤</span> 우선순위 검토</div>
+      <div><span>◉</span> 실시간 현황</div>
+    </nav>
+    <small class="game-office-foot">INTERNAL OPERATIONS</small>
+  </aside>
+
+  <header class="game-topbar">
+    <a href="index.html" class="btn btn-ghost btn-sm header-action" data-home title="뒤로가기" aria-label="뒤로가기">
+      <span class="header-icon" aria-hidden="true">←</span><span class="header-label">뒤로</span>
+    </a>
+    <span class="gt-brand-mark" aria-hidden="true">B24</span>
+    <div>
+      <div class="gt-title">NO THANKS</div>
+      <div class="gt-room" id="roomLabel">—</div>
+    </div>
+    <div class="spacer" style="flex:1"></div>
+    <button class="btn btn-ghost btn-sm header-action" data-alert-enable title="알림 켜기" aria-label="알림 켜기">
+      <svg class="header-icon notification-icon" viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M18 8.5a6 6 0 0 0-12 0c0 7-3 7-3 8.5h18c0-1.5-3-1.5-3-8.5Z"/>
+        <path d="M9.5 20h5"/>
+      </svg><span class="header-label">알림</span>
+    </button>
+    <button class="btn btn-ghost btn-sm header-action" data-leave title="나가기" aria-label="나가기">
+      <span class="header-icon" aria-hidden="true">↗</span><span class="header-label">나가기</span>
+    </button>
+    <button class="btn btn-ghost btn-sm mobile-only" id="sideToggle">채팅</button>
+  </header>
+
+  <div class="board" id="board">
+    <div class="empty-state">불러오는 중…</div>
+  </div>
+
+  <aside class="side">
+    <div class="side-tabs">
+      <button data-tab="chat" aria-selected="true">채팅</button>
+      <button data-tab="log" aria-selected="false">기록</button>
+    </div>
+    <div class="side-pane" id="chatPane"></div>
+    <div class="side-pane hidden" id="logPane"></div>
+    <div class="chat-input">
+      <input type="text" id="chatInput" maxlength="200" placeholder="메시지 입력" autocomplete="off">
+      <button class="btn btn-sm" id="chatSend">전송</button>
+    </div>
+  </aside>
+</div>
+
+<script src="assets/firebase-config.js"></script>
+<script src="assets/firebase.js"></script>
+<script src="assets/core.js"></script>
+<script>
+/* ==========================================================
+   PASS — 규칙 (원작 No Thanks! 와 동일)
+   - 타일 3~35 (33장) 중 무작위 9장을 제외하고 24장 사용
+   - 각자 시작 포인트칩: 인원별 (3~5인 11개 / 6인 9개 / 7인 7개)
+   - 자기 차례에 (a) 타일을 가져간다 → 쌓인 칩도 모두 가져옴
+                 (b) 칩 1개를 얹고 넘긴다 → 칩이 없으면 반드시 가져가야 함
+   - 종료 시 점수 = 가져간 타일 합 (연속된 숫자는 최솟값만 계산) − 남은 칩
+   - 점수가 가장 낮은 사람이 승리
+   ========================================================== */
+(async function () {
+  'use strict';
+
+  if (window.T9_FIREBASE && window.T9_FIREBASE._pending) {
+    try { await window.T9_FIREBASE._pending; } catch (_) {}
+  }
+  await Core.init();
+
+  async function startAdminSpectator(roomId, board) {
+    const esc = (value) => Core.esc(String(value ?? ''));
+    document.body.classList.add('admin-spectator-mode');
+    document.getElementById('roomLabel').textContent = '관리자 관전 · 자료실 코드 ' + roomId;
+
+    const style = document.createElement('style');
+    style.textContent = `
+      .admin-spectator-mode [data-leave] { display:none !important; }
+      .admin-watch { max-width:1180px; margin:0 auto; padding:18px; }
+      .admin-watch-banner { display:flex; justify-content:space-between; gap:14px; align-items:center; padding:15px 17px; margin-bottom:14px; border:1px solid #c8d7f3; border-radius:14px; background:#edf4ff; color:#183b75; }
+      .admin-watch-banner b { display:block; font-size:16px; margin-bottom:3px; }
+      .admin-watch-banner small { color:#526b91; }
+      .admin-watch-grid { display:grid; grid-template-columns:minmax(0,1fr) 320px; gap:14px; align-items:start; }
+      .admin-watch-card { background:#fff; border:1px solid #dde4ef; border-radius:14px; overflow:hidden; }
+      .admin-watch-head { display:flex; justify-content:space-between; gap:12px; align-items:center; padding:14px 16px; border-bottom:1px solid #e7ecf3; }
+      .admin-watch-head h3 { margin:0; font-size:15px; }
+      .admin-watch-body { padding:15px 16px; }
+      .admin-watch-state { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:9px; }
+      .admin-watch-stat { padding:11px; border:1px solid #e4e9f1; border-radius:10px; background:#f8fafc; min-width:0; }
+      .admin-watch-stat span { display:block; color:#6b778b; font-size:11px; margin-bottom:5px; }
+      .admin-watch-stat b { display:block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+      .admin-watch-players { display:flex; flex-direction:column; gap:8px; }
+      .admin-watch-player { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:10px; align-items:center; padding:11px 12px; border:1px solid #e4e9f1; border-radius:11px; }
+      .admin-watch-player strong { display:block; }
+      .admin-watch-player small { display:block; margin-top:3px; color:#728096; }
+      .admin-watch-actions { display:flex; flex-wrap:wrap; gap:6px; justify-content:flex-end; }
+      .admin-watch button { border:1px solid #cbd5e1; background:#fff; color:#26364c; padding:7px 9px; border-radius:8px; font:inherit; font-size:12px; cursor:pointer; }
+      .admin-watch button:hover { background:#f3f6fa; }
+      .admin-watch button.primary { border-color:#3468d4; background:#3468d4; color:#fff; }
+      .admin-watch button.danger { border-color:#e3a4aa; color:#b32635; }
+      .admin-watch button:disabled { opacity:.55; cursor:wait; }
+      .admin-watch-note { color:#6b778b; font-size:12px; line-height:1.6; }
+      .admin-watch-hands { margin-top:12px; display:flex; flex-direction:column; gap:7px; }
+      .admin-watch-hand { padding:9px 10px; border-radius:9px; background:#f7f9fc; font-size:12px; word-break:break-all; }
+      @media(max-width:760px){ .admin-watch-grid{grid-template-columns:1fr}.admin-watch-state{grid-template-columns:repeat(2,minmax(0,1fr))}.admin-watch{padding:10px}.admin-watch-player{grid-template-columns:1fr}.admin-watch-actions{justify-content:flex-start} }
+    `;
+    document.head.appendChild(style);
+
+    board.innerHTML = `<div class="admin-watch"><div class="admin-watch-banner"><div><b>관리자 관전 모드</b><small>참가자·좌석·대기 목록에 포함되지 않으며 게임 조작은 할 수 없습니다.</small></div><button type="button" data-admin-exit>목록으로</button></div><div class="empty-state">게임 상태를 불러오는 중…</div></div>`;
+    board.querySelector('[data-admin-exit]')?.addEventListener('click', () => { location.href = 'index.html'; });
+
+    const gameNames = { outlaw:'사용자 검증 프로세스', pass:'업무 우선순위', ladder:'회원 등급 관리', onecard:'업무 카드 전달' };
+    const phaseNames = { lobby:'대기 중', playing:'진행 중', over:'종료' };
+
+    function handText(player, game) {
+      const hand = Array.isArray(player.hand) ? player.hand : [];
+      if (!hand.length) return '손패 없음';
+      if (game === 'onecard') return hand.join(' · ');
+      if (game === 'ladder') return hand.join(', ');
+      if (game === 'outlaw') return hand.map((c) => typeof c === 'string' ? c : (c?.name || c?.id || JSON.stringify(c))).join(' · ');
+      return hand.join(', ');
+    }
+
+    function stateItems(r, players) {
+      const current = players[((Number(r.turn) || 0) % Math.max(1, players.length))];
+      const common = [
+        ['상태', phaseNames[r.phase] || r.phase || '-'],
+        ['현재 차례', current?.name || '-'],
+        ['참가자', `${players.length}/${r.maxSeats || '-'}`]
+      ];
+      if (r.game === 'onecard') {
+        const top = Array.isArray(r.discard) && r.discard.length ? r.discard[r.discard.length - 1] : '-';
+        return common.concat([['바닥 카드', top], ['현재 문양', r.currentSuit || '-'], ['누적 공격', r.attack || 0], ['방향', Number(r.direction) < 0 ? '역방향' : '정방향']]);
+      }
+      if (r.game === 'pass') return common.concat([['현재 숫자', r.tile ?? '-'], ['칩 더미', r.pot ?? 0], ['남은 카드', Array.isArray(r.deck) ? r.deck.length : '-']]);
+      if (r.game === 'ladder') {
+        const pile = r.pile ? `${r.pile.rank ?? '-'} × ${r.pile.count ?? '-'}` : '없음';
+        return common.concat([['현재 제출', pile], ['혁명', r.revolution ? '진행 중' : '아니오'], ['완주', Array.isArray(r.finishOrder) ? r.finishOrder.length : 0]]);
+      }
+      if (r.game === 'outlaw') return common.concat([['진행 단계', r.step || '-'], ['대기 효과', r.pending?.type || '없음'], ['남은 덱', Array.isArray(r.deck) ? r.deck.length : '-']]);
+      return common;
+    }
+
+    function playerMeta(p, r) {
+      const bits = [`좌석 ${Number(p.seat) + 1}`, p.bot ? 'AI' : '사용자'];
+      if (r.phase === 'lobby') bits.push(p.ready ? '준비' : '미준비');
+      if (Array.isArray(p.hand)) bits.push(`손패 ${p.hand.length}장`);
+      if (typeof p.hp === 'number') bits.push(`체력 ${p.hp}/${p.maxHp ?? '?'}`);
+      if (typeof p.chips === 'number') bits.push(`칩 ${p.chips}`);
+      if (typeof p.score === 'number') bits.push(`점수 ${p.score}`);
+      if (p.role) bits.push(`역할 ${p.role}`);
+      return bits.join(' · ');
+    }
+
+    function render(r) {
+      if (!r) {
+        board.innerHTML = `<div class="admin-watch"><div class="admin-watch-banner"><div><b>관리자 관전 모드</b><small>해당 자료실이 삭제되었거나 만료되었습니다.</small></div><button type="button" data-admin-exit>목록으로</button></div></div>`;
+        board.querySelector('[data-admin-exit]')?.addEventListener('click', () => { location.href = 'index.html'; });
+        return;
+      }
+      const players = Object.values(r.players || {}).sort((a,b) => (a.seat||0)-(b.seat||0));
+      const stats = stateItems(r, players).map(([label,value]) => `<div class="admin-watch-stat"><span>${esc(label)}</span><b>${esc(value)}</b></div>`).join('');
+      const playerRows = players.map((p) => `<div class="admin-watch-player"><div><strong>${esc(p.name)}${p.id === r.host ? ' · 방장' : ''}</strong><small>${esc(playerMeta(p,r))}</small></div><div class="admin-watch-actions">${p.bot ? '' : `<button type="button" data-admin-command="convert_ai" data-player="${esc(p.id)}">AI 전환</button>`}<button type="button" class="danger" data-admin-command="kick_player" data-player="${esc(p.id)}">강퇴</button></div></div>`).join('') || '<div class="admin-watch-note">참가자가 없습니다.</div>';
+      const hands = players.map((p) => `<div class="admin-watch-hand"><b>${esc(p.name)}</b> · ${esc(handText(p,r.game))}</div>`).join('');
+      board.innerHTML = `<div class="admin-watch">
+        <div class="admin-watch-banner"><div><b>관리자 관전 모드 · ${esc(gameNames[r.game] || r.game)}</b><small>게임에 참여하지 않고 실시간 상태를 관전합니다.</small></div><button type="button" data-admin-exit>목록으로</button></div>
+        <div class="admin-watch-grid">
+          <div class="admin-watch-card"><div class="admin-watch-head"><h3>${esc(r.title || '게임방')}</h3><span>${esc(phaseNames[r.phase] || r.phase || '')}</span></div><div class="admin-watch-body"><div class="admin-watch-state">${stats}</div><div class="admin-watch-hands">${hands}</div></div></div>
+          <div><div class="admin-watch-card"><div class="admin-watch-head"><h3>관리자 제어</h3></div><div class="admin-watch-body"><div class="admin-watch-actions" style="justify-content:flex-start;margin-bottom:13px"><button type="button" class="primary" data-admin-command="skip_turn">턴 넘기기</button><button type="button" data-admin-command="reset_game">게임 초기화</button><button type="button" class="danger" data-admin-command="delete_room">방 삭제</button></div><div class="admin-watch-note">관리자 관전자는 좌석을 차지하지 않으며 카드 제출·뽑기·준비 등의 게임 행동을 할 수 없습니다.</div></div></div><div class="admin-watch-card" style="margin-top:12px"><div class="admin-watch-head"><h3>참가자 관리</h3></div><div class="admin-watch-body"><div class="admin-watch-players">${playerRows}</div></div></div></div>
+        </div></div>`;
+      board.querySelector('[data-admin-exit]')?.addEventListener('click', () => { location.href = 'index.html'; });
+      board.querySelectorAll('[data-admin-command]').forEach((button) => button.addEventListener('click', async () => {
+        const command = button.dataset.adminCommand;
+        const playerId = button.dataset.player || '';
+        const labels = { convert_ai:'이 참가자를 AI로 전환', kick_player:'이 참가자를 강퇴', skip_turn:'현재 턴을 넘김', reset_game:'게임을 대기실로 초기화', delete_room:'게임방을 삭제' };
+        if (!confirm(`${labels[command] || '관리 작업을 실행'}하시겠습니까?`)) return;
+        button.disabled = true;
+        try {
+          await Core.adminAction(roomId, command, playerId);
+          Core.toast('관리자 작업을 완료했습니다.');
+          if (command === 'delete_room') location.href = 'index.html';
+        } catch (error) {
+          Core.toast(error.message || '관리자 작업에 실패했습니다.');
+          button.disabled = false;
+        }
+      }));
+    }
+
+    Core.onRoom(roomId, render);
+  }
+
+
+  const params = new URLSearchParams(location.search);
+  const roomId = params.get('room');
+  if (!roomId) { location.href = 'index.html'; return; }
+
+  const board = document.getElementById('board');
+  const adminState = await Core.adminStatus().catch(() => ({ admin: false }));
+  const adminSpectator = !!adminState.admin && params.get('spectate') === '1';
+  if (adminSpectator) {
+    await startAdminSpectator(roomId, board);
+    return;
+  }
+
+  if (!Core.requireLogin()) return;
+  try {
+    await Core.joinRoom(roomId);
+  } catch (err) {
+    board.innerHTML = `<div class="empty-state">재접속하지 못했습니다. ${Core.esc(err.message)}
+      <br><a href="index.html" style="color:var(--brass)">자료실 목록</a></div>`;
+    return;
+  }
+  document.getElementById('roomLabel').textContent = '자료실 코드 ' + roomId;
+
+  Core.mountSide(roomId, { mobileDefaultTab: 'chat' });
+  Core.startHeartbeat(roomId);
+
+  let room = null;
+  let lobbyPeople = [];
+  let invitePresenceTimer = null;
+  refreshLobbyPeople();
+  invitePresenceTimer = setInterval(refreshLobbyPeople, 5000);
+  async function inviteApi(payload, query) {
+    if (location.hostname.endsWith('github.io')) return { ok:true, people:[], invites:[] };
+    const url = 'api.php' + (query ? '?' + new URLSearchParams(query) : '');
+    const res = await fetch(url, query ? { cache:'no-store' } : { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload || {}) });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || data.ok === false) throw new Error(data.error || '초대 처리에 실패했습니다.');
+    return data;
+  }
+  async function refreshLobbyPeople() {
+    if (!Core.me) return;
+    try {
+      await inviteApi({ action:'presence_beat', userId:Core.me.id, name:Core.me.name, dept:Core.me.dept || '', page:'game' });
+      const data = await inviteApi(null, { action:'presence', userId:Core.me.id });
+      lobbyPeople = (data.people || []).filter((p) => p.id !== Core.me.id && p.page === 'lobby');
+      if (room && room.phase === 'lobby' && isHost(room)) renderLobby(room);
+    } catch (_) {}
+  }
+  async function sendGameInvite(targetId, button) {
+    if (!room || !isHost(room)) return;
+    try {
+      button.disabled = true;
+      await inviteApi({ action:'invite_send', userId:Core.me.id, roomId, targetId });
+      const person = lobbyPeople.find((p) => p.id === targetId);
+      Core.toast(`${person ? person.name : '사용자'}님에게 초대를 보냈습니다.`);
+      button.textContent = '전송됨';
+      setTimeout(() => { if (button.isConnected) { button.disabled = false; button.textContent = '초대'; } }, 30000);
+    } catch (err) { Core.toast(err.message); button.disabled = false; }
+  }
+  function invitePanelHtml(r) {
+    if (!isHost(r)) return '';
+    const people = lobbyPeople.filter((p) => !r.players?.[p.id]);
+    return `<section class="invite-panel"><div class="invite-panel-head"><b>메인 로비 접속자 초대</b><small>방장만 가능</small></div><div class="invite-people">${people.length ? people.map((p)=>`<div class="invite-person"><div class="avatar">${Core.esc(Core.initials(p.name))}</div><div class="person-info"><b>${Core.esc(p.name)}</b><small>${Core.esc(p.dept || '부서 미지정')}</small></div><button type="button" class="btn" data-invite-user="${Core.esc(p.id)}">초대</button></div>`).join('') : '<div class="invite-empty">현재 메인 로비에 초대 가능한 사용자가 없습니다.</div>'}</div></section>`;
+  }
+  function bindInviteButtons() { board.querySelectorAll('[data-invite-user]').forEach((b)=>b.addEventListener('click',()=>sendGameInvite(b.dataset.inviteUser,b))); }
+
+  let lastPhase = null;
+  let botTimer = null;
+
+  const START_CHIPS = (n) => (n <= 5 ? 11 : n === 6 ? 9 : 7);
+
+  const seatedList = (r) =>
+    Object.values(r.players || {}).sort((a, b) => a.seat - b.seat);
+
+  const isHost = (r) => r && r.host === Core.me.id;
+
+  /* ---------- 덱 생성 ---------- */
+  function buildDeck(seed) {
+    const rng = Core.mulberry32(seed);
+    const all = [];
+    for (let i = 3; i <= 35; i++) all.push(i);
+    return Core.shuffle(all, rng).slice(0, 24);
+  }
+
+  /* ---------- 점수 계산 ---------- */
+  function scoreOf(p) {
+    const tiles = (p.tiles || []).slice().sort((a, b) => a - b);
+    let sum = 0;
+    for (let i = 0; i < tiles.length; i++) {
+      if (i === 0 || tiles[i] !== tiles[i - 1] + 1) sum += tiles[i];
+    }
+    return sum - (p.chips || 0);
+  }
+
+  /* 연속 구간의 시작점인지 (UI 강조용) */
+  function runHeads(tiles) {
+    const s = tiles.slice().sort((a, b) => a - b);
+    const heads = new Set();
+    for (let i = 0; i < s.length; i++) {
+      if (i === 0 || s[i] !== s[i - 1] + 1) heads.add(s[i]);
+    }
+    return heads;
+  }
+
+  /* ---------- 게임 시작 ---------- */
+  async function startGame() {
+    await Core.updateRoom(roomId, (r) => {
+      const ps = seatedList(r);
+      if (ps.length < 3) return false;
+
+      const deck = buildDeck(r.seed);
+      const chips = START_CHIPS(ps.length);
+
+      ps.forEach((p) => {
+        p.chips = chips;
+        p.tiles = [];
+        p.ready = false;
+      });
+
+      r.phase = 'playing';
+      r.deck = deck;
+      r.pos = 0;
+      r.tile = deck[0];
+      r.pot = 0;
+      r.turn = 0;
+      r.startedAt = Core.now();
+    });
+    Core.sys(roomId, '세션이 시작되었습니다.');
+    Core.log(roomId, '<b>세션 시작</b> · 검토 항목 24개');
+  }
+
+  /* ---------- 액션: 타일 가져가기 ---------- */
+  async function takeTile() {
+    let msg = null;
+    await Core.updateRoom(roomId, (r) => {
+      if (r.phase !== 'playing') return false;
+      const ps = seatedList(r);
+      const cur = ps[r.turn % ps.length];
+      if (!cur || cur.id !== Core.me.id) return false;
+
+      const p = r.players[Core.me.id];
+      p.tiles = p.tiles || [];
+      p.tiles.push(r.tile);
+      p.chips = (p.chips || 0) + (r.pot || 0);
+
+      msg = `<b>${p.name}</b> 님이 ${r.tile}번을 가져갔습니다` +
+            (r.pot ? ` (+${r.pot}포인트)` : '');
+
+      r.pos += 1;
+      r.pot = 0;
+
+      if (r.pos >= r.deck.length) {
+        r.phase = 'over';
+        r.tile = null;
+      } else {
+        r.tile = r.deck[r.pos];
+        // 가져간 사람이 이어서 진행 (원작 규칙)
+        r.turn = ps.findIndex((x) => x.id === Core.me.id);
+      }
+    });
+    if (msg) Core.log(roomId, msg);
+  }
+
+  /* ---------- 액션: 칩 얹고 넘기기 ---------- */
+  async function passTile() {
+    let msg = null;
+    await Core.updateRoom(roomId, (r) => {
+      if (r.phase !== 'playing') return false;
+      const ps = seatedList(r);
+      const cur = ps[r.turn % ps.length];
+      if (!cur || cur.id !== Core.me.id) return false;
+
+      const p = r.players[Core.me.id];
+      if ((p.chips || 0) <= 0) return false;
+
+      p.chips -= 1;
+      r.pot = (r.pot || 0) + 1;
+      r.turn = (r.turn + 1) % ps.length;
+      msg = `${p.name} 님이 넘겼습니다 · 누적 ${r.pot}포인트`;
+    });
+    if (msg) Core.log(roomId, msg);
+  }
+
+  /* ---------- 봇 (인원 부족 시 자동 진행) ---------- */
+  function maybeBot() {
+    clearTimeout(botTimer);
+    if (!room || room.phase !== 'playing' || !isHost(room)) return;
+
+    const ps = seatedList(room);
+    const cur = ps[room.turn % ps.length];
+    if (!cur || !cur.bot) return;
+
+    botTimer = setTimeout(async () => {
+      const r = room;
+      if (!r || r.phase !== 'playing') return;
+      const list = seatedList(r);
+      const c = list[r.turn % list.length];
+      if (!c || !c.bot) return;
+
+      // 간단한 휴리스틱: 실질 비용이 낮거나 연결 타일이면 가져감
+      const eff = r.tile - (r.pot || 0);
+      const owns = c.tiles || [];
+      const connects = owns.includes(r.tile - 1) || owns.includes(r.tile + 1);
+      const take = c.chips <= 0 || eff <= 6 || (connects && eff <= 18);
+
+      await Core.updateRoom(roomId, (rr) => {
+        if (rr.phase !== 'playing') return false;
+        const l = seatedList(rr);
+        const b = l[rr.turn % l.length];
+        if (!b || !b.bot) return false;
+        const bp = rr.players[b.id];
+
+        if (take) {
+          bp.tiles = bp.tiles || [];
+          bp.tiles.push(rr.tile);
+          bp.chips = (bp.chips || 0) + (rr.pot || 0);
+          rr.pos += 1;
+          rr.pot = 0;
+          if (rr.pos >= rr.deck.length) { rr.phase = 'over'; rr.tile = null; }
+          else {
+            rr.tile = rr.deck[rr.pos];
+            rr.turn = l.findIndex((x) => x.id === b.id);
+          }
+        } else {
+          bp.chips -= 1;
+          rr.pot = (rr.pot || 0) + 1;
+          rr.turn = (rr.turn + 1) % l.length;
+        }
+      });
+    }, 900);
+  }
+
+  async function addBot() {
+    await Core.updateRoom(roomId, (r) => {
+      const ps = seatedList(r);
+      if (ps.length >= r.maxSeats) return false;
+      const id = 'bot_' + Core.uid(6);
+      const names = Core.BOT_TITLES;
+      r.players[id] = {
+        id, bot: true,
+        name: names[ps.filter((p) => p.bot).length % names.length],
+        dept: '자동',
+        seat: ps.length,
+        ready: true,
+        online: true,
+        beat: Core.now()
+      };
+    });
+  }
+
+  async function removeBots() {
+    await Core.updateRoom(roomId, (r) => {
+      Object.keys(r.players || {}).forEach((k) => {
+        if (r.players[k].bot) delete r.players[k];
+      });
+      seatedList(r).forEach((p, i) => { p.seat = i; });
+    });
+  }
+
+  /* ---------- 렌더: 로비 ---------- */
+  function renderLobby(r) {
+    const ps = seatedList(r);
+    const ready = ps.filter((p) => p.ready).length;
+    const canStart = ps.length >= 3 && ready === ps.length;
+
+    board.innerHTML = `
+      <div class="lobby">
+        <div class="lobby-summary">
+          <div class="lobby-meta"><span>업무 대기</span><span>CODE ${r.id}</span></div>
+          <div class="lobby-title-row"><h2>${Core.esc(r.title)}</h2><span>3명부터 시작</span></div>
+          <p class="lobby-description">모든 참가자가 준비되면 개설자가 시작할 수 있습니다.</p>
+        </div>
+
+        <div class="lobby-players">
+          ${ps.map((p) => `
+            <div class="lobby-row">
+              <div class="avatar">${Core.esc(Core.initials(p.name))}</div>
+              <div style="flex:1">
+                <div style="font-weight:500">${Core.esc(p.name)}</div>
+                <div class="mono muted" style="font-size:11px">${Core.esc(p.dept || '—')}</div>
+              </div>
+              ${p.id === r.host ? '<span class="badge host">개설자</span>' : ''}
+              ${p.ready ? '<span class="badge ready">준비</span>' : '<span class="badge">대기</span>'}
+              ${(isHost(r) && p.id !== r.host) ? `<button class="lobby-remove" data-kick="${p.id}" data-kick-name="${Core.esc(p.name)}" title="참가자 내보내기" aria-label="${Core.esc(p.name)} 내보내기">×</button>` : ''}
+            </div>`).join('')}
+          ${Array.from({ length: Math.max(0, 4 - ps.length) }).map(() => `
+            <div class="lobby-row" style="opacity:.4">
+              <div class="avatar" style="background:var(--ink-3);color:var(--cream-dim)">·</div>
+              <div style="flex:1" class="muted">빈 자리</div>
+            </div>`).join('')}
+        </div>
+
+        <div class="lobby-actions">
+          <button class="btn ${r.players[Core.me.id]?.ready ? '' : 'btn-primary'}" id="btnReady">
+            ${r.players[Core.me.id]?.ready ? '준비 취소' : '준비 완료'}
+          </button>
+          <button class="btn btn-ghost" id="btnCopyInvite" type="button">🔗 초대 링크 복사</button>
+          ${isHost(r) ? `<button class="btn btn-bot" id="btnBot" ${ps.length >= r.maxSeats ? 'disabled' : ''}>봇 추가 · 유료</button>` : ''}
+          ${isHost(r) ? `<button class="btn btn-primary" id="btnStart" ${canStart ? '' : 'disabled'}>
+            세션 시작 ${ps.length < 3 ? '(3명 필요)' : `(${ready}/${ps.length} 준비)`}</button>` : ''}
+        </div>
+
+        ${invitePanelHtml(r)}
+      </div>`;
+
+    bindInviteButtons();
+    const rb = document.getElementById('btnReady');
+    rb && rb.addEventListener('click', () => {
+      Core.updateRoom(roomId, (rr) => {
+        const p = rr.players[Core.me.id];
+        if (p) p.ready = !p.ready;
+      });
+    });
+
+    const bb = document.getElementById('btnBot');
+    bb && bb.addEventListener('click', async () => {
+      if (await Core.requestBotAccess()) addBot();
+    });
+
+    document.getElementById('btnCopyInvite')?.addEventListener('click', () => Core.copyInviteLink(roomId));
+    const sb = document.getElementById('btnStart');
+    sb && sb.addEventListener('click', startGame);
+
+    board.querySelectorAll('[data-kick]').forEach((b) => {
+      b.addEventListener('click', () => {
+        const targetName = b.dataset.kickName || '이 참가자';
+        if (!window.confirm(`${targetName}님을 이 방에서 강퇴하시겠습니까?`)) return;
+        Core.updateRoom(roomId, (rr) => {
+          if (!rr || rr.host !== Core.me.id || b.dataset.kick === rr.host) return;
+          delete rr.players[b.dataset.kick];
+          seatedList(rr).forEach((p, i) => { p.seat = i; });
+        });
+      });
+    });
+  }
+
+  /* ---------- 렌더: 게임 ---------- */
+  function renderGame(r) {
+    const ps = seatedList(r);
+    const curIndex = ((Number(r.turn) || 0) % ps.length + ps.length) % ps.length;
+    const cur = ps[curIndex];
+    const myTurn = cur && cur.id === Core.me.id;
+    const me = r.players[Core.me.id];
+    const canPass = me && (me.chips || 0) > 0;
+    const left = r.deck.length - r.pos;
+    Core.actionAlert(roomId, myTurn ? `turn:${cur.id}` : '',
+      '내 작업 차례입니다.');
+
+    board.innerHTML = `
+      <div class="pass-stage">
+        <div class="deck-info">
+          <span>남은 타일<b>${left}</b></span>
+          <span>내 포인트<b>${me ? me.chips : 0}</b></span>
+          <span>누적 포인트<b>${r.pot || 0}</b></span>
+          <span>차례<b>${cur ? Core.esc(cur.name) : '—'}</b></span>
+        </div>
+
+        <div class="tile-stage">
+          <div class="task-sheet" id="tileEl">
+            <div class="task-sheet-head">
+              <span class="task-badge">검토 안건</span>
+              <span class="task-code">B24-${String(r.tile).padStart(2, '0')}</span>
+            </div>
+            <div class="task-sheet-body">
+              <small>업무 우선순위</small>
+              <strong>${r.tile}</strong>
+              <p>이 안건을 가져가거나 포인트를 제출해 다음 담당자에게 넘기세요.</p>
+            </div>
+            <div class="task-sheet-foot">
+              <span>현재 담당자</span>
+              <b>${cur ? Core.esc(cur.name) : '—'}</b>
+            </div>
+          </div>
+          <div class="point-tray ${r.pot ? '' : 'empty'}">
+            <div class="point-tray-head">
+              <span>안건에 적립된 포인트</span>
+              <b>${r.pot || 0}</b>
+            </div>
+            <div class="pot">
+              ${r.pot ? Array.from({ length: Math.min(r.pot, 24) })
+                .map(() => '<span class="chip-coin"></span>').join('') : '<span class="point-empty">적립된 포인트 없음</span>'}
+            </div>
+          </div>
+        </div>
+
+        <div class="turn-note">
+          ${myTurn
+            ? `내 차례입니다 · 가져가면 실질 <b class="mono">${r.tile - r.pot}</b>점`
+            : `${cur ? Core.esc(cur.name) + ' 님이 고민 중입니다' : ''}`}
+        </div>
+
+        <div class="actions">
+          <button class="btn btn-primary" id="btnTake" ${myTurn ? '' : 'disabled'}>
+            타일 가져가기
+          </button>
+          <button class="btn" id="btnPass" ${(myTurn && canPass) ? '' : 'disabled'}>
+            ${canPass ? '포인트 내고 넘기기' : '포인트 없음'}
+          </button>
+        </div>
+
+        <div class="seats">
+          ${ps.map((p) => {
+            const heads = runHeads(p.tiles || []);
+            const stale = !p.bot && Core.isStale(p);
+            return `
+              <div class="seat ${cur && cur.id === p.id ? 'active' : ''} ${stale ? 'dead' : ''}">
+                <div class="nm">
+                  ${Core.esc(p.name)}
+                  ${p.id === Core.me.id ? '<span class="muted mono" style="font-size:10.5px">나</span>' : ''}
+                  ${stale ? '<span class="muted mono" style="font-size:10.5px">· 접속 끊김</span>' : ''}
+                </div>
+                <div class="chips">${p.id === Core.me.id
+                  ? `내 포인트 ${p.chips || 0}`
+                  : '보유 포인트 비공개'}</div>
+                <div class="taken">
+                  ${(p.tiles || []).slice().sort((a,b)=>a-b)
+                    .map((t) => `<span class="mini ${heads.has(t) ? 'run' : ''}">${t}</span>`).join('')
+                    || '<span class="mini" style="opacity:.4">없음</span>'}
+                </div>
+                <div class="st">${p.id === Core.me.id
+                  ? `내 현재 점수 ${scoreOf(p)}`
+                  : '현재 점수 비공개'}</div>
+              </div>`;
+          }).join('')}
+        </div>
+      </div>`;
+
+    const tb = document.getElementById('btnTake');
+    tb && tb.addEventListener('click', takeTile);
+    const pb = document.getElementById('btnPass');
+    pb && pb.addEventListener('click', passTile);
+  }
+
+  /* ---------- 렌더: 결과 ---------- */
+  function renderOver(r) {
+    const ps = seatedList(r)
+      .map((p) => ({ p, s: scoreOf(p) }))
+      .sort((a, b) => a.s - b.s);
+    const best = ps[0].s;
+
+    board.innerHTML = `
+      <div class="lobby">
+        <div class="eyebrow">세션 종료</div>
+        <h2>결과</h2>
+        <table class="result-table">
+          <thead>
+            <tr><th>순위</th><th>이름</th><th style="text-align:right">타일 합</th>
+                <th style="text-align:right">남은 포인트</th><th style="text-align:right">최종</th></tr>
+          </thead>
+          <tbody>
+            ${ps.map((x, i) => {
+              const tiles = (x.p.tiles || []).slice().sort((a,b)=>a-b);
+              let raw = 0;
+              for (let k = 0; k < tiles.length; k++) {
+                if (k === 0 || tiles[k] !== tiles[k-1] + 1) raw += tiles[k];
+              }
+              return `<tr class="${x.s === best ? 'win' : ''}">
+                <td class="mono">${i + 1}</td>
+                <td>${Core.esc(x.p.name)}${x.s === best ? ' · 승리' : ''}</td>
+                <td class="n">${raw}</td>
+                <td class="n">−${x.p.chips || 0}</td>
+                <td class="n"><b>${x.s}</b></td>
+              </tr>`;
+            }).join('')}
+          </tbody>
+        </table>
+
+        <div style="display:flex;gap:8px;margin-top:24px;flex-wrap:wrap">
+          ${isHost(r) ? '<button class="btn btn-primary" id="btnAgain">한 판 더</button>' : ''}
+          <a class="btn" href="index.html">자료실 목록으로</a>
+        </div>
+      </div>`;
+
+    const ab = document.getElementById('btnAgain');
+    ab && ab.addEventListener('click', async () => {
+      await Core.updateRoom(roomId, (rr) => {
+        rr.phase = 'lobby';
+        rr.seed = Math.floor(Math.random() * 2 ** 31);
+        Object.values(rr.players).forEach((p) => {
+          p.tiles = [];
+          p.chips = 0;
+          p.ready = !!p.bot;
+        });
+        delete rr.deck; delete rr.tile; delete rr.pot; delete rr.pos; delete rr.turn;
+      });
+    });
+  }
+
+  /* ---------- 방 구독 ---------- */
+  Core.onRoom(roomId, (r) => {
+    if (!r) {
+      board.innerHTML = '<div class="empty-state">자료실이 사라졌습니다. ' +
+        '<a href="index.html" style="color:var(--brass)">자료실 목록</a></div>';
+      return;
+    }
+    if (!r.players || !r.players[Core.me.id]) {
+      board.innerHTML = '<div class="empty-state">이 자료실에서 나간 상태입니다. ' +
+        '<a href="index.html" style="color:var(--brass)">자료실 목록</a></div>';
+      return;
+    }
+
+    room = r;
+    document.body.dataset.gamePhase = r.phase || 'lobby';
+
+    if (r.phase !== lastPhase) {
+      lastPhase = r.phase;
+      if (r.phase === 'over') {
+        const ps = seatedList(r).map((p) => ({ p, s: scoreOf(p) })).sort((a, b) => a.s - b.s);
+        Core.sys(roomId, `세션 종료 — ${ps[0].p.name} 님 최종 1위 (${ps[0].s}점)`);
+      }
+    }
+
+    if (r.phase === 'lobby') renderLobby(r);
+    else if (r.phase === 'playing') { renderGame(r); maybeBot(); }
+    else renderOver(r);
+  });
+
+  /* ---------- 이탈 처리 ---------- */
+  window.addEventListener('pagehide', () => Core.stopHeartbeat());
+  document.addEventListener('click', (e) => {
+    if (e.target.closest('a[href="index.html"]')) {
+      sessionStorage.setItem('table9:suppressRejoinOnce', '1');
+    }
+  });
+  document.querySelector('[data-leave]').addEventListener('click', async () => {
+    if (room && room.phase === 'playing') {
+      if (!confirm('세션이 진행 중입니다. 나가면 참가자 목록에서 제거됩니다. 계속하시겠습니까?')) {
+        return;
+      }
+    }
+    await Core.leaveRoom(roomId).catch(() => {});
+    location.href = 'index.html';
+  });
+})();
+</script>
+</body>
+</html>

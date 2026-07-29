@@ -1,0 +1,11 @@
+{
+  "name": "board24-clean",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "validate": "node scripts/validate.mjs",
+    "test:core": "node scripts/test-core.mjs",
+    "check": "npm run validate && npm run test:core"
+  }
+}
