@@ -466,20 +466,7 @@ body.game-onecard #chatPane.hidden {
   .oc-choice { max-height: calc(100dvh - 36px); overflow-y: auto; }
 }
 
-/* v2.9.112 — 원카드 채팅 영역 축소 */
-@media (min-width: 861px) {
-  body.game-onecard .game-shell {
-    grid-template-columns: 190px minmax(0, 1fr) 240px !important;
-  }
-  body.game-onecard .side-pane {
-    padding: 9px !important;
-  }
-  body.game-onecard .chat-input {
-    padding: 6px !important;
-  }
-}
-
-@media (max-width: 860px) {
+/* v2.9.113 — 원카드 모바일 채팅 영역만 축소 */@media (max-width: 860px) {
   body.game-onecard .game-shell {
     grid-template-rows:
       auto
