@@ -381,10 +381,7 @@
       }
       this.onlineRequired = !localHost && this.store.mode !== 'online';
       this.me = this.loadSession();
-      if (this.me && this.store.mode === 'online' && this.store._fb.uid) {
-        this.me.id = this.store._fb.uid;
-        localStorage.setItem(NS + ':session', JSON.stringify(this.me));
-      }
+      this._syncAuthIdentity();
       this._watchConnection();
       this.armActionAlerts();
       return this.store.mode;
@@ -481,6 +478,34 @@
     },
 
     /* ---- 세션 / 로그인 ---- */
+    _authUid() {
+      if (sessionStorage.getItem(NS + ':admin') === '1') return '';
+      const fb = this.store && this.store.mode === 'online' && this.store._fb;
+      return fb && fb.uid ? String(fb.uid) : '';
+    },
+
+    _syncAuthIdentity() {
+      if (!this.me) return null;
+      const authUid = this._authUid();
+      if (!authUid) return this.me;
+      const legacy = Array.isArray(this.me.legacyIds) ? this.me.legacyIds.slice() : [];
+      if (this.me.id && this.me.id !== authUid) legacy.push(String(this.me.id));
+      this.me.id = authUid;
+      this.me.accountId = authUid;
+      this.me.legacyIds = Array.from(new Set(legacy.filter((id) => id && id !== authUid))).slice(-8);
+      localStorage.setItem(NS + ':session', JSON.stringify(this.me));
+      return this.me;
+    },
+
+    _identityIds() {
+      if (!this.me) return [];
+      return Array.from(new Set([
+        this.me.id,
+        this.me.accountId,
+        ...(Array.isArray(this.me.legacyIds) ? this.me.legacyIds : [])
+      ].filter(Boolean).map(String)));
+    },
+
     loadSession() {
       try {
         const raw = localStorage.getItem(NS + ':session');
@@ -496,9 +521,14 @@
       if (!clean) throw new Error('이름을 입력해 주세요.');
 
       const prev = this.loadSession();
-      const onlineId = this.store && this.store.mode === 'online' && this.store._fb && this.store._fb.uid;
+      const onlineId = this._authUid();
+      const nextId = onlineId || (prev && prev.id) || uid(10);
+      const legacyIds = Array.isArray(prev && prev.legacyIds) ? prev.legacyIds.slice() : [];
+      if (prev && prev.id && prev.id !== nextId) legacyIds.push(String(prev.id));
       this.me = {
-        id: onlineId || (prev && prev.id) || uid(10),
+        id: nextId,
+        accountId: onlineId || (prev && prev.accountId) || nextId,
+        legacyIds: Array.from(new Set(legacyIds.filter((id) => id && id !== nextId))).slice(-8),
         name: clean,
         dept: String(dept || '').trim().slice(0, 16),
         since: (prev && prev.since) || now()
@@ -579,6 +609,7 @@
     async createRoom({ game, title, maxSeats, locked, pin }) {
       this._requireOnlineForHosted();
       if (!this.me) throw new Error('먼저 로그인해 주세요.');
+      this._syncAuthIdentity();
       if (!GAMES[game]) throw new Error('알 수 없는 업무 유형입니다.');
       const g = GAMES[game];
       const id = uid(6);
@@ -595,11 +626,13 @@
         players: {
           [this.me.id]: {
             id: this.me.id,
+            accountId: this.me.accountId || this.me.id,
             name: this.me.name,
             dept: this.me.dept || '',
             seat: 0,
             ready: false,
             online: true,
+            joinedAt: timestamp,
             beat: timestamp
           }
         },
@@ -618,43 +651,108 @@
     async joinRoom(roomId, pin) {
       this._requireOnlineForHosted();
       if (!this.me) throw new Error('먼저 로그인해 주세요.');
+      this._syncAuthIdentity();
+
       const path = 'rooms/' + roomId;
       const room = await this.store.get(path);
       if (!room) throw new Error('방을 찾을 수 없습니다.');
-      const seated = Object.values(room.players || {});
-      const already = room.players && room.players[this.me.id];
-      if (!already && room.locked && room.pin !== String(pin || '')) throw new Error('접근 코드가 맞지 않습니다.');
-      if (!already && room.phase !== 'lobby') throw new Error('이미 처리 중인 자료실입니다.');
-      if (!already && seated.length >= room.maxSeats) throw new Error('자리가 모두 찼습니다.');
 
-      if (!already) {
-        await this.store.update(path + '/players', (players) => {
-          const next = players && !Array.isArray(players) ? { ...players } : {};
-          if (next[this.me.id]) return next;
-          if (Object.keys(next).length >= room.maxSeats) throw new Error('자리가 모두 찼습니다.');
-          next[this.me.id] = {
-            id: this.me.id,
-            name: this.me.name,
-            dept: this.me.dept || '',
-            seat: Object.keys(next).length,
-            ready: false,
-            online: true,
-            beat: now()
-          };
-          return next;
+      const currentId = this.me.id;
+      const identityIds = this._identityIds();
+      const lastRoom = localStorage.getItem(NS + ':lastRoom');
+      const sameProfile = (player) => player && !player.bot &&
+        String(player.name || '') === String(this.me.name || '') &&
+        String(player.dept || '') === String(this.me.dept || '');
+      const recentOwnLobby = lastRoom === roomId && room.phase === 'lobby' &&
+        now() - Number(room.created || 0) < 60 * 60 * 1000;
+
+      const previewPlayers = room.players && !Array.isArray(room.players) ? room.players : {};
+      const previewAliases = new Set(identityIds.filter((id) => id !== currentId && previewPlayers[id]));
+      Object.entries(previewPlayers).forEach(([id, player]) => {
+        if (id !== currentId && player && player.accountId === currentId) previewAliases.add(id);
+      });
+      if (recentOwnLobby && room.host && room.host !== currentId && sameProfile(previewPlayers[room.host])) {
+        previewAliases.add(room.host);
+      }
+      const previewAlready = previewPlayers[currentId] || Array.from(previewAliases).map((id) => previewPlayers[id]).find(Boolean);
+      const previewCount = Object.keys(previewPlayers).filter((id) => !previewAliases.has(id)).length;
+      if (!previewAlready && room.locked && room.pin !== String(pin || '')) throw new Error('접근 코드가 맞지 않습니다.');
+      if (!previewAlready && room.phase !== 'lobby') throw new Error('이미 처리 중인 자료실입니다.');
+      if (!previewAlready && previewCount >= room.maxSeats) throw new Error('자리가 모두 찼습니다.');
+
+      await this.store.update(path, (r) => {
+        if (!r) throw new Error('방을 찾을 수 없습니다.');
+        const players = r.players && !Array.isArray(r.players) ? { ...r.players } : {};
+        const aliases = new Set(identityIds.filter((id) => id !== currentId && players[id]));
+        Object.entries(players).forEach(([id, player]) => {
+          if (id !== currentId && player && player.accountId === currentId) aliases.add(id);
         });
-      } else {
-        await this.store.set(path + '/players/' + this.me.id, {
-          ...already,
-          id: this.me.id,
+
+        const freshOwnLobby = lastRoom === roomId && r.phase === 'lobby' &&
+          now() - Number(r.created || 0) < 60 * 60 * 1000;
+        if (freshOwnLobby && r.host && r.host !== currentId && sameProfile(players[r.host])) {
+          aliases.add(r.host);
+        }
+
+        const records = [];
+        if (players[currentId]) records.push(players[currentId]);
+        aliases.forEach((id) => { if (players[id]) records.push(players[id]); });
+        const hadIdentity = records.length > 0;
+        const effectiveCount = Object.keys(players).filter((id) => !aliases.has(id) && id !== currentId).length + (players[currentId] ? 1 : 0);
+
+        if (!hadIdentity && r.locked && r.pin !== String(pin || '')) throw new Error('접근 코드가 맞지 않습니다.');
+        if (!hadIdentity && r.phase !== 'lobby') throw new Error('이미 처리 중인 자료실입니다.');
+        if (!hadIdentity && effectiveCount >= r.maxSeats) throw new Error('자리가 모두 찼습니다.');
+
+        const score = (player) => {
+          if (!player) return -1;
+          return Object.keys(player).length +
+            (Array.isArray(player.hand) ? player.hand.length * 20 : 0) +
+            (Number.isFinite(Number(player.seat)) ? Math.max(0, 10 - Number(player.seat)) : 0);
+        };
+        records.sort((a, b) => score(a) - score(b));
+        const merged = Object.assign({}, ...records);
+        const oldIds = Array.from(aliases);
+        oldIds.forEach((id) => { delete players[id]; });
+
+        const rewrite = (value, oldId) => {
+          if (value === oldId) return currentId;
+          if (Array.isArray(value)) return value.map((item) => rewrite(item, oldId));
+          if (value && typeof value === 'object') {
+            const next = {};
+            Object.entries(value).forEach(([key, item]) => { next[key] = rewrite(item, oldId); });
+            return next;
+          }
+          return value;
+        };
+        oldIds.forEach((oldId) => {
+          Object.keys(r).forEach((key) => {
+            if (key !== 'players') r[key] = rewrite(r[key], oldId);
+          });
+        });
+
+        const joinedAt = merged.joinedAt || now();
+        players[currentId] = {
+          ...merged,
+          id: currentId,
+          accountId: this.me.accountId || currentId,
           name: this.me.name,
           dept: this.me.dept || '',
+          seat: Number.isFinite(Number(merged.seat)) ? Number(merged.seat) : effectiveCount,
+          ready: merged.ready === true,
           online: true,
+          joinedAt,
           beat: now()
-        });
-      }
-      await this.store.set(path + '/updated', now());
-      const confirmed = await this.store.get(path + '/players/' + this.me.id);
+        };
+        const ordered = Object.values(players).sort((a, b) => Number(a.seat || 0) - Number(b.seat || 0));
+        ordered.forEach((player, index) => { player.seat = index; });
+        r.players = players;
+        if (!r.host || !players[r.host] || players[r.host].bot) r.host = currentId;
+        r.updated = now();
+        return r;
+      });
+
+      const confirmed = await this.store.get(path + '/players/' + currentId);
       if (!confirmed) throw new Error('참가 정보가 서버에 저장되지 않았습니다. 다시 시도해 주세요.');
       localStorage.setItem(NS + ':lastRoom', roomId);
       return roomId;
@@ -662,41 +760,50 @@
 
     async leaveRoom(roomId) {
       this.stopHeartbeat();
+      this._syncAuthIdentity();
+      const identityIds = new Set(this._identityIds());
+      const currentIdentity = this.me && this.me.id;
       try {
         const path = 'rooms/' + roomId;
         const existing = await this.store.get(path);
         if (!existing) return;
         await this.store.update(path, (r) => {
           if (!r || !r.players) return r;
+          const leavingKeys = new Set();
+          Object.entries(r.players).forEach(([id, player]) => {
+            if (identityIds.has(id) || (player && currentIdentity && player.accountId === currentIdentity)) {
+              leavingKeys.add(id);
+            }
+          });
           const before = Object.values(r.players).sort((a, b) => a.seat - b.seat);
           const oldTurn = before.length ? (Number(r.turn) || 0) % before.length : 0;
           const currentId = before[oldTurn] && before[oldTurn].id;
           let nextId = currentId;
-          if (currentId === this.me.id && before.length > 1) {
+          if (leavingKeys.has(currentId) && before.length > leavingKeys.size) {
             for (let i = 1; i < before.length; i++) {
               const candidate = before[(oldTurn + i) % before.length];
-              if (candidate.id !== this.me.id && (r.game !== 'outlaw' || (candidate.hp || 0) > 0)) {
+              if (!leavingKeys.has(candidate.id) && (r.game !== 'outlaw' || (candidate.hp || 0) > 0)) {
                 nextId = candidate.id;
                 break;
               }
             }
           }
-          delete r.players[this.me.id];
+          leavingKeys.forEach((id) => { delete r.players[id]; });
           const rest = Object.values(r.players).sort((a, b) => a.seat - b.seat);
           const humanRest = rest.filter((p) => !p.bot);
 
           // 마지막 사람이 나가고 봇만 남는 방은 즉시 삭제한다.
           // 사람이 한 명이라도 남아 있으면 방을 유지하고, 방장은 사람에게 넘긴다.
           if (!humanRest.length) return null;
-          if (r.host === this.me.id || !r.players[r.host] || r.players[r.host].bot) {
+          if (leavingKeys.has(r.host) || !r.players[r.host] || r.players[r.host].bot) {
             r.host = humanRest[0].id;
           }
           rest.forEach((p, i) => { p.seat = i; });
           let turnIndex = rest.findIndex((p) => p.id === nextId);
           if (turnIndex < 0) turnIndex = Math.min(oldTurn, rest.length - 1);
           r.turn = turnIndex;
-          if (r.pending && JSON.stringify(r.pending).includes(this.me.id)) r.pending = null;
-          if (r.game === 'outlaw' && currentId === this.me.id) r.step = 'draw';
+          if (r.pending && Array.from(leavingKeys).some((id) => JSON.stringify(r.pending).includes(id))) r.pending = null;
+          if (r.game === 'outlaw' && leavingKeys.has(currentId)) r.step = 'draw';
           r.updated = now();
           return r;
         });
@@ -1014,6 +1121,15 @@
       const sendBtn  = document.getElementById('chatSend');
       const tabs     = document.querySelectorAll('.side-tabs button');
 
+      if (opts.hideLog) {
+        const logTab = Array.from(tabs).find((btn) => btn.dataset.tab === 'log');
+        if (logTab) logTab.hidden = true;
+        const tabBar = document.querySelector('.side-tabs');
+        if (tabBar) tabBar.style.display = 'none';
+        if (chatPane) chatPane.classList.remove('hidden');
+        if (logPane) logPane.classList.add('hidden');
+      }
+
       tabs.forEach((btn) => {
         btn.addEventListener('click', () => {
           tabs.forEach((b) => b.setAttribute('aria-selected', String(b === btn)));
@@ -1093,18 +1209,20 @@
         ).join(''));
       });
 
-      this.onLog(roomId, (list) => {
-        const clock = (at) => new Date(at || now()).toLocaleTimeString('ko-KR', {
-          hour: '2-digit', minute: '2-digit'
+      if (!opts.hideLog) {
+        this.onLog(roomId, (list) => {
+          const clock = (at) => new Date(at || now()).toLocaleTimeString('ko-KR', {
+            hour: '2-digit', minute: '2-digit'
+          });
+          const myName = String((this.me && this.me.name) || '').trim();
+          renderFeed(logPane, list.map((l) => {
+            const raw = String(l.text || '');
+            const plain = raw.replace(/<[^>]*>/g, '');
+            const mine = myName && (plain.includes(myName) || raw.includes(esc(myName)));
+            return `<div class="log-entry ${mine ? 'mine' : ''}"><span>${raw}</span><time>${clock(l.at)}</time></div>`;
+          }).join(''));
         });
-        const myName = String((this.me && this.me.name) || '').trim();
-        renderFeed(logPane, list.map((l) => {
-          const raw = String(l.text || '');
-          const plain = raw.replace(/<[^>]*>/g, '');
-          const mine = myName && (plain.includes(myName) || raw.includes(esc(myName)));
-          return `<div class="log-entry ${mine ? 'mine' : ''}"><span>${raw}</span><time>${clock(l.at)}</time></div>`;
-        }).join(''));
-      });
+      }
 
       // 모바일 채팅 토글
       const toggle = document.getElementById('sideToggle');

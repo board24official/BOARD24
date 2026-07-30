@@ -19,7 +19,7 @@
 }
 .oc-status {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 8px;
 }
 .oc-status > span {
@@ -401,13 +401,6 @@ button.oc-card.playable { border-color: #3971e7; box-shadow: 0 0 0 2px rgba(57,1
 .invite-person .person-info small { display:block; margin-top:1px; color:#7a8597; font-size:10px; }
 .invite-person button { min-width:62px; padding:6px 9px; font-size:10.5px; }
 .invite-empty { padding:10px; color:#7a8597; font-size:11px; text-align:center; }
-.turn-sequence { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:7px; margin:0 0 10px; }
-.turn-sequence > div { min-width:0; padding:9px 10px; border:1px solid #d8e0eb; border-radius:8px; background:#fff; text-align:center; }
-.turn-sequence span { display:block; color:#7a8597; font-size:10px; }
-.turn-sequence b { display:block; overflow:hidden; margin-top:3px; color:#263148; font-size:13px; text-overflow:ellipsis; white-space:nowrap; }
-.turn-sequence .current { border-color:#3971e7; background:#eef4ff; box-shadow:0 0 0 1px #3971e7 inset; }
-.turn-sequence .current b { color:#2859bd; }
-@media (max-width:560px){ .turn-sequence{gap:4px}.turn-sequence>div{padding:7px 5px}.turn-sequence b{font-size:11px}.turn-sequence span{font-size:8.5px} }
 
 
 /* v2.9.47 — 방장 참가자 내보내기 버튼을 X 아이콘으로 표시 */
@@ -426,8 +419,13 @@ button.oc-card.playable { border-color: #3971e7; box-shadow: 0 0 0 2px rgba(57,1
 
 
 /* v2.9.109 — 원카드 공통 UI 정리 */
+/* 원카드는 채팅만 사용하고 활동 기록 탭은 표시하지 않는다. */
+body.onecard-chat-only .side-tabs { display: none !important; }
+body.onecard-chat-only #logPane { display: none !important; }
+body.onecard-chat-only #chatPane { display: block !important; }
+
 .game-topbar [data-leave] { color: inherit !important; }
-.oc-message, .lobby-description, .turn-sequence b, .oc-player-name b,
+.oc-message, .lobby-description, .oc-player-name b,
 .side-pane, .chat-input input { overflow-wrap: anywhere; word-break: keep-all; }
 @media (max-width: 860px) {
   .game-topbar { gap: 4px !important; }
@@ -687,7 +685,8 @@ button.oc-card.playable { border-color: #3971e7; box-shadow: 0 0 0 2px rgba(57,1
   }
   document.getElementById('roomLabel').textContent = '자료실 코드 ' + roomId;
 
-  Core.mountSide(roomId, { mobileDefaultTab: 'log' });
+  document.body.classList.add('onecard-chat-only');
+  Core.mountSide(roomId, { mobileDefaultTab: 'chat', hideLog: true });
   Core.startHeartbeat(roomId);
 
   const SUITS = ['S', 'H', 'D', 'C'];
@@ -1262,9 +1261,6 @@ button.oc-card.playable { border-color: #3971e7; box-shadow: 0 0 0 2px rgba(57,1
     const ps = seatedList(r);
     const curIndex = mod(r.turn || 0, ps.length);
     const cur = ps[curIndex];
-    const dir = (r.direction || 1) > 0 ? 1 : -1;
-    const prevTurn = ps.length > 1 ? ps[mod(curIndex - dir, ps.length)] : cur;
-    const nextTurn = ps.length > 1 ? ps[mod(curIndex + dir, ps.length)] : cur;
     const me = r.players[Core.me.id];
     const myTurn = cur && cur.id === Core.me.id;
     const hand = me?.hand || [];
@@ -1279,17 +1275,11 @@ button.oc-card.playable { border-color: #3971e7; box-shadow: 0 0 0 2px rgba(57,1
 
     board.innerHTML = `
       <div class="onecard-stage">
-        <div class="turn-sequence" aria-label="차례 순서">
-          <div><span>이전 차례</span><b>${prevTurn ? Core.esc(prevTurn.name) : '—'}</b></div>
-          <div class="current"><span>${myTurn ? '내 차례' : '현재 차례'}</span><b>${cur ? Core.esc(cur.name) : '—'}</b></div>
-          <div><span>다음 차례</span><b>${nextTurn ? Core.esc(nextTurn.name) : '—'}</b></div>
-        </div>
         <div class="oc-status">
           <span>남은 덱<b>${(r.deck || []).length}</b></span>
           <span>내 카드<b>${hand.length}장</b></span>
           <span>진행 방향<b>${(r.direction || 1) > 0 ? '정방향 →' : '역방향 ←'}</b></span>
           <span>현재 차례<b>${cur ? Core.esc(cur.name) : '—'}</b></span>
-          <span>최근 행동<b>${Core.esc(r.lastAction || '—')}</b></span>
         </div>
 
         <div class="oc-opponents">
@@ -1485,18 +1475,13 @@ button.oc-card.playable { border-color: #3971e7; box-shadow: 0 0 0 2px rgba(57,1
 <script id="v2-9-109-onecard-consistency">
 (() => {
   const syncSideForPhase = () => {
-    const phase = document.body.dataset.gamePhase || 'lobby';
     const chat = document.getElementById('chatPane');
     const log = document.getElementById('logPane');
     const tabs = document.querySelector('.side-tabs');
     if (!chat || !log || !tabs) return;
-    if (phase === 'lobby' && matchMedia('(max-width: 860px)').matches) {
-      tabs.style.display = 'none';
-      chat.classList.remove('hidden');
-      log.classList.add('hidden');
-    } else {
-      tabs.style.removeProperty('display');
-    }
+    tabs.style.display = 'none';
+    chat.classList.remove('hidden');
+    log.classList.add('hidden');
   };
   let savedHandScroll = 0;
   document.addEventListener('scroll', (event) => {
