@@ -466,6 +466,53 @@ body.game-onecard #chatPane.hidden {
   .oc-choice { max-height: calc(100dvh - 36px); overflow-y: auto; }
 }
 
+/* v2.9.112 — 원카드 채팅 영역 축소 */
+@media (min-width: 861px) {
+  body.game-onecard .game-shell {
+    grid-template-columns: 190px minmax(0, 1fr) 240px !important;
+  }
+  body.game-onecard .side-pane {
+    padding: 9px !important;
+  }
+  body.game-onecard .chat-input {
+    padding: 6px !important;
+  }
+}
+
+@media (max-width: 860px) {
+  body.game-onecard .game-shell {
+    grid-template-rows:
+      auto
+      minmax(0, 1fr)
+      clamp(150px, 24dvh, 190px) !important;
+  }
+  body.game-onecard .side {
+    min-height: 150px !important;
+    max-height: 190px !important;
+  }
+  body.game-onecard #chatPane,
+  body.game-onecard #chatPane.hidden {
+    min-height: 0 !important;
+    padding: 0 6px 4px !important;
+  }
+  body.game-onecard #chatPane::before {
+    padding: 4px 6px !important;
+  }
+  body.game-onecard .chat-input {
+    padding: 4px !important;
+  }
+  body.game-onecard .chat-input input {
+    min-height: 34px !important;
+    padding: 6px 8px !important;
+    font-size: 12px !important;
+  }
+  body.game-onecard .chat-input .btn {
+    min-height: 34px !important;
+    padding: 5px 9px !important;
+    font-size: 10px !important;
+  }
+}
+
 </style>
 </head>
 <body class="is-game game-onecard">
