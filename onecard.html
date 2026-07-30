@@ -950,10 +950,7 @@ body.onecard-chat-only #chatPane { display: block !important; }
         r.lastAction = '게임 시작';
         started = true;
       });
-      if (started) {
-        Core.sys(roomId, '원카드 세션이 시작되었습니다.');
-        Core.log(roomId, '<b>세션 시작</b> · 각자 카드 7장');
-      }
+      // 원카드는 시작 시 세션/활동 기록 문구를 표시하지 않는다.
     } finally {
       actionBusy = false;
     }
