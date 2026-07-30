@@ -257,7 +257,8 @@ button.oc-card.playable { border-color: #3971e7; box-shadow: 0 0 0 2px rgba(57,1
   overflow-x: auto;
   overflow-y: hidden;
   padding: 14px 10px 18px;
-  scroll-snap-type: x proximity;
+  scroll-behavior: auto;
+  scroll-snap-type: none;
   overscroll-behavior-x: contain;
   touch-action: pan-x;
   scrollbar-gutter: stable;
@@ -265,7 +266,7 @@ button.oc-card.playable { border-color: #3971e7; box-shadow: 0 0 0 2px rgba(57,1
 }
 .oc-hand .oc-card {
   flex: 0 0 auto;
-  scroll-snap-align: center;
+  scroll-snap-align: none;
 }
 .oc-rule-note {
   color: #697488;
@@ -418,11 +419,16 @@ button.oc-card.playable { border-color: #3971e7; box-shadow: 0 0 0 2px rgba(57,1
 }
 
 
-/* v2.9.109 — 원카드 공통 UI 정리 */
-/* 원카드는 채팅만 사용하고 활동 기록 탭은 표시하지 않는다. */
-body.onecard-chat-only .side-tabs { display: none !important; }
-body.onecard-chat-only #logPane { display: none !important; }
-body.onecard-chat-only #chatPane { display: block !important; }
+/* v2.9.110 — 원카드는 모든 화면에서 채팅만 표시 */
+body.game-onecard .side-tabs { display: none !important; }
+body.game-onecard #logPane,
+body.game-onecard #logPane.hidden { display: none !important; }
+body.game-onecard #chatPane,
+body.game-onecard #chatPane.hidden {
+  display: flex !important;
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+}
 
 .game-topbar [data-leave] { color: inherit !important; }
 .oc-message, .lobby-description, .oc-player-name b,
@@ -434,9 +440,16 @@ body.onecard-chat-only #chatPane { display: block !important; }
   .game-topbar .gt-title, .game-topbar .gt-room { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .game-topbar .header-action { min-width: 34px !important; padding-inline: 6px !important; }
   .game-topbar .header-label { display: none !important; }
-  body[data-game-phase="lobby"] .side-tabs { display: none !important; }
-  body[data-game-phase="lobby"] #logPane { display: none !important; }
-  body[data-game-phase="lobby"] #chatPane { display: block !important; }
+  body.game-onecard .side { display: flex !important; flex-direction: column !important; }
+  body.game-onecard #logPane,
+  body.game-onecard #logPane.hidden { display: none !important; }
+  body.game-onecard #chatPane,
+  body.game-onecard #chatPane.hidden {
+    display: flex !important;
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+    padding-top: 0 !important;
+  }
   .oc-opponents { grid-template-columns: repeat(4, minmax(0, 1fr)) !important; }
   .oc-player { min-width: 0 !important; }
   .oc-player-head { align-items: flex-start !important; }
@@ -498,13 +511,9 @@ body.onecard-chat-only #chatPane { display: block !important; }
     <div class="empty-state">불러오는 중…</div>
   </div>
 
-  <aside class="side">
-    <div class="side-tabs">
-      <button data-tab="chat" aria-selected="true">채팅</button>
-      <button data-tab="log" aria-selected="false">기록</button>
-    </div>
+  <aside class="side onecard-chat-side" aria-label="채팅">
     <div class="side-pane" id="chatPane"></div>
-    <div class="side-pane hidden" id="logPane"></div>
+    <div class="side-pane hidden" id="logPane" aria-hidden="true"></div>
     <div class="chat-input">
       <input type="text" id="chatInput" maxlength="200" placeholder="메시지 입력" autocomplete="off">
       <button class="btn btn-sm" id="chatSend">전송</button>
@@ -824,7 +833,8 @@ body.onecard-chat-only #chatPane { display: block !important; }
     const c = parseCard(code);
     if ((r.attack || 0) > 0) return canDefendAttack(code, r);
     if (!jokerColorAllowed(code, r)) return false;
-    if (c.joker || c.rank === '7') return true;
+    // 조커만 무조건 낼 수 있다. 7은 일반 카드처럼 현재 문양 또는 같은 숫자일 때만 낼 수 있다.
+    if (c.joker) return true;
     const top = parseCard(topCard(r));
     return c.suit === r.currentSuit || (!top.joker && c.rank === top.rank);
   }
@@ -1369,17 +1379,38 @@ body.onecard-chat-only #chatPane { display: block !important; }
 
     const handScroller = board.querySelector('.oc-hand');
     if (handScroller) {
-      handScroller.scrollLeft = Math.min(handScrollLeft, Math.max(0, handScroller.scrollWidth - handScroller.clientWidth));
+      requestAnimationFrame(() => {
+        const max = Math.max(0, handScroller.scrollWidth - handScroller.clientWidth);
+        handScroller.scrollLeft = Math.min(Math.max(0, handScrollLeft), max);
+      });
+
+      let scrollSaveFrame = 0;
       handScroller.addEventListener('scroll', () => {
-        handScrollLeft = handScroller.scrollLeft;
+        cancelAnimationFrame(scrollSaveFrame);
+        scrollSaveFrame = requestAnimationFrame(() => {
+          handScrollLeft = handScroller.scrollLeft;
+        });
       }, { passive: true });
+
       handScroller.addEventListener('wheel', (event) => {
-        if (handScroller.scrollWidth <= handScroller.clientWidth) return;
-        const delta = Math.abs(event.deltaX) > Math.abs(event.deltaY) ? event.deltaX : event.deltaY;
-        if (!delta) return;
+        const max = Math.max(0, handScroller.scrollWidth - handScroller.clientWidth);
+        if (max <= 0) return;
+
+        const rawDelta = Math.abs(event.deltaX) > Math.abs(event.deltaY)
+          ? event.deltaX
+          : event.deltaY;
+        if (!rawDelta) return;
+
+        const delta = event.deltaMode === 1 ? rawDelta * 28
+          : event.deltaMode === 2 ? rawDelta * handScroller.clientWidth
+          : rawDelta;
+        const next = Math.min(max, Math.max(0, handScroller.scrollLeft + delta));
+
+        // 끝에 도달했을 때는 페이지 세로 스크롤을 막지 않는다.
+        if (next === handScroller.scrollLeft) return;
         event.preventDefault();
-        handScroller.scrollLeft += delta;
-        handScrollLeft = handScroller.scrollLeft;
+        handScroller.scrollLeft = next;
+        handScrollLeft = next;
       }, { passive: false });
     }
 
@@ -1498,36 +1529,6 @@ body.onecard-chat-only #chatPane { display: block !important; }
 })();
 </script>
 
-<script id="v2-9-109-onecard-consistency">
-(() => {
-  const syncSideForPhase = () => {
-    const chat = document.getElementById('chatPane');
-    const log = document.getElementById('logPane');
-    const tabs = document.querySelector('.side-tabs');
-    if (!chat || !log || !tabs) return;
-    tabs.style.display = 'none';
-    chat.classList.remove('hidden');
-    log.classList.add('hidden');
-  };
-  let savedHandScroll = 0;
-  document.addEventListener('scroll', (event) => {
-    const hand = event.target?.closest?.('.oc-hand');
-    if (hand) savedHandScroll = hand.scrollLeft;
-  }, true);
-  const restore = () => {
-    syncSideForPhase();
-    const hand = document.querySelector('.oc-hand');
-    if (hand) requestAnimationFrame(() => {
-      const max = Math.max(0, hand.scrollWidth - hand.clientWidth);
-      hand.scrollLeft = Math.min(savedHandScroll, max);
-    });
-  };
-  new MutationObserver(restore).observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['data-game-phase'] });
-  addEventListener('resize', restore, { passive: true });
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', restore, { once: true });
-  else restore();
-})();
-</script>
 
 </body>
 </html>
