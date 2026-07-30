@@ -443,7 +443,14 @@ button.oc-card.playable { border-color: #3971e7; box-shadow: 0 0 0 2px rgba(57,1
   .oc-player { min-width: 0 !important; }
   .oc-player-head { align-items: flex-start !important; }
   .oc-player-name b { white-space: normal !important; line-height: 1.2; }
-  .oc-player-head .avatar, .oc-count { display: none !important; }
+  .oc-player-head .avatar { display: none !important; }
+  .oc-count {
+    display: inline-flex !important;
+    flex: 0 0 auto;
+    padding: 2px 4px;
+    font-size: 7px;
+    white-space: nowrap;
+  }
   .oc-hand { flex-wrap: nowrap !important; overflow-x: auto !important; overflow-y: hidden !important; }
   .oc-choice { max-height: calc(100dvh - 36px); overflow-y: auto; }
 }
@@ -1294,7 +1301,7 @@ button.oc-card.playable { border-color: #3971e7; box-shadow: 0 0 0 2px rgba(57,1
                 <div class="avatar">${Core.esc(Core.initials(p.name))}</div>
                 <div class="oc-player-name"><b>${Core.esc(p.name)}${p.bot ? ' · AI' : ''}</b>
                   <small>${stale ? '접속 끊김' : (p.id === r.oneCardPlayer ? '원카드!' : '대기 중')}</small></div>
-                <span class="oc-count">▤ ${count}</span>
+                <span class="oc-count" aria-label="남은 카드 ${count}장">▤ ${count}장</span>
               </div>
               <div class="oc-backs">${Array.from({ length: Math.min(count, 12) }).map(() => '<span class="oc-back-mini"></span>').join('')}</div>
             </div>`;
