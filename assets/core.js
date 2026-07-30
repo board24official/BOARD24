@@ -683,8 +683,14 @@
           }
           delete r.players[this.me.id];
           const rest = Object.values(r.players).sort((a, b) => a.seat - b.seat);
-          if (!rest.length) return null;
-          if (r.host === this.me.id) r.host = rest[0].id;
+          const humanRest = rest.filter((p) => !p.bot);
+
+          // 마지막 사람이 나가고 봇만 남는 방은 즉시 삭제한다.
+          // 사람이 한 명이라도 남아 있으면 방을 유지하고, 방장은 사람에게 넘긴다.
+          if (!humanRest.length) return null;
+          if (r.host === this.me.id || !r.players[r.host] || r.players[r.host].bot) {
+            r.host = humanRest[0].id;
+          }
           rest.forEach((p, i) => { p.seat = i; });
           let turnIndex = rest.findIndex((p) => p.id === nextId);
           if (turnIndex < 0) turnIndex = Math.min(oldTurn, rest.length - 1);
