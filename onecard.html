@@ -1284,10 +1284,47 @@ body.game-onecard #chatPane.hidden {
   }
 
   let handScrollLeft = 0;
+  let handScrollAtEnd = false;
+  let restoringHandScroll = false;
+
+  function captureHandScroll(scroller) {
+    if (!scroller) return;
+    const max = Math.max(0, scroller.scrollWidth - scroller.clientWidth);
+    handScrollLeft = Math.max(0, scroller.scrollLeft);
+    handScrollAtEnd = max > 0 && (max - handScrollLeft) <= 6;
+  }
+
+  function restoreHandScroll(scroller) {
+    if (!scroller) return;
+    restoringHandScroll = true;
+
+    const apply = () => {
+      const max = Math.max(0, scroller.scrollWidth - scroller.clientWidth);
+      const target = handScrollAtEnd
+        ? max
+        : Math.min(Math.max(0, handScrollLeft), max);
+      scroller.scrollLeft = target;
+      handScrollLeft = target;
+    };
+
+    // 카드와 글꼴의 실제 너비가 확정된 뒤에도 위치를 다시 맞춘다.
+    requestAnimationFrame(() => {
+      apply();
+      requestAnimationFrame(() => {
+        apply();
+        restoringHandScroll = false;
+      });
+    });
+
+    window.setTimeout(() => {
+      apply();
+      restoringHandScroll = false;
+    }, 80);
+  }
 
   function renderGame(r) {
     const previousHand = board.querySelector('.oc-hand');
-    if (previousHand) handScrollLeft = previousHand.scrollLeft;
+    captureHandScroll(previousHand);
     const ps = seatedList(r);
     const curIndex = mod(r.turn || 0, ps.length);
     const cur = ps[curIndex];
@@ -1379,16 +1416,14 @@ body.game-onecard #chatPane.hidden {
 
     const handScroller = board.querySelector('.oc-hand');
     if (handScroller) {
-      requestAnimationFrame(() => {
-        const max = Math.max(0, handScroller.scrollWidth - handScroller.clientWidth);
-        handScroller.scrollLeft = Math.min(Math.max(0, handScrollLeft), max);
-      });
+      restoreHandScroll(handScroller);
 
       let scrollSaveFrame = 0;
       handScroller.addEventListener('scroll', () => {
+        if (restoringHandScroll) return;
         cancelAnimationFrame(scrollSaveFrame);
         scrollSaveFrame = requestAnimationFrame(() => {
-          handScrollLeft = handScroller.scrollLeft;
+          captureHandScroll(handScroller);
         });
       }, { passive: true });
 
@@ -1411,6 +1446,7 @@ body.game-onecard #chatPane.hidden {
         event.preventDefault();
         handScroller.scrollLeft = next;
         handScrollLeft = next;
+        handScrollAtEnd = (max - next) <= 6;
       }, { passive: false });
     }
 
