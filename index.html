@@ -720,7 +720,7 @@
     try {
       const account = await Core.googleLogin();
       const fallback = String(account.email || '').split('@')[0] || 'Google 사용자';
-      Core.login(account.name || fallback, 'Google');
+      Core.login(account.name || fallback, 'Google', account.uid);
       paintWho();
       Core.toast('Google 계정으로 로그인했습니다.');
       if (pendingJoinRoomId) handleJoinLink();
@@ -1096,7 +1096,8 @@
         locked: !!pin,
         pin
       });
-      await Core.joinRoom(room.id, pin);
+      // createRoom에서 개설자를 이미 참가자로 저장하므로 여기서 다시 joinRoom을 호출하지 않는다.
+      // Google 인증 상태 전환 직후 중복 참가자가 생기는 것을 막는다.
       await Core.copyInviteLink(room.id);
       setTimeout(() => { location.href = Core.GAMES[game].file + '?room=' + room.id; }, 900);
     } catch (err) {

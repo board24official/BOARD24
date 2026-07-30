@@ -678,6 +678,29 @@ body.onecard-chat-only #chatPane { display: block !important; }
   if (!Core.requireLogin()) return;
   try {
     await Core.joinRoom(roomId);
+
+    // Google 로그인 전후 UID가 바뀐 아주 짧은 순간에 방장 기록과 현재 기록이
+    // 둘 다 생긴 경우, 방금 만든 원카드 대기실에서만 안전하게 하나로 합친다.
+    const lastRoom = localStorage.getItem('table9:lastRoom');
+    if (lastRoom === roomId) {
+      await Core.updateRoom(roomId, (r) => {
+        if (!r || r.phase !== 'lobby' || !r.players) return false;
+        const me = r.players[Core.me.id];
+        const oldHost = r.host && r.host !== Core.me.id ? r.players[r.host] : null;
+        if (!me || !oldHost || oldHost.bot) return false;
+        const sameName = String(oldHost.name || '') === String(me.name || '');
+        const sameDept = String(oldHost.dept || '') === String(me.dept || '');
+        if (!sameName || !sameDept || Number(oldHost.seat) !== 0) return false;
+
+        const oldHostId = r.host;
+        delete r.players[oldHostId];
+        me.seat = 0;
+        r.host = Core.me.id;
+        Object.values(r.players)
+          .sort((a, b) => Number(a.seat || 0) - Number(b.seat || 0))
+          .forEach((p, i) => { p.seat = i; });
+      });
+    }
   } catch (err) {
     board.innerHTML = `<div class="empty-state">재접속하지 못했습니다. ${Core.esc(err.message)}
       <br><a href="index.html" style="color:var(--brass)">자료실 목록</a></div>`;
@@ -1414,9 +1437,15 @@ body.onecard-chat-only #chatPane { display: block !important; }
         </div>
         <div style="display:flex;gap:8px;flex-wrap:wrap">
           ${isHost(r) ? '<button class="btn btn-primary" id="btnAgain">한 판 더</button>' : ''}
-          <a class="btn" href="index.html">자료실 목록으로</a>
+          <button class="btn" type="button" id="btnLeaveAfterGame">자료실 목록으로</button>
         </div>
       </div>`;
+
+    document.getElementById('btnLeaveAfterGame')?.addEventListener('click', async () => {
+      sessionStorage.setItem('table9:suppressRejoinOnce', '1');
+      await Core.leaveRoom(roomId).catch(() => {});
+      location.href = 'index.html';
+    });
 
     document.getElementById('btnAgain')?.addEventListener('click', async () => {
       await Core.updateRoom(roomId, (rr) => {
