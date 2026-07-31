@@ -41,13 +41,11 @@ body.game-thief { --thief-accent:#6d4fd3; --thief-soft:#f1edff; }
 .thief-target-head b { color:#253044; }
 .thief-target-head span { color:#6d788b; font:10px var(--f-mono); }
 .thief-card-backs { display:flex; flex-wrap:wrap; justify-content:center; gap:8px; min-height:128px; align-items:center; }
-.thief-back { position:relative; width:76px; height:108px; border:3px solid #fff; border-radius:9px; background:repeating-linear-gradient(135deg,#17264b 0 7px,#314d83 7px 14px); box-shadow:0 6px 14px rgba(26,42,75,.2); cursor:pointer; transition:transform .13s ease, box-shadow .13s ease; }
+.thief-back { position:relative; width:76px; height:108px; border:3px solid #fff; border-radius:9px; background:repeating-linear-gradient(135deg,#17264b 0 7px,#314d83 7px 14px); box-shadow:0 6px 14px rgba(26,42,75,.2); cursor:pointer; transition:border-color .13s ease, box-shadow .13s ease, filter .13s ease; transform:none; }
 .thief-back::after { content:'B24'; position:absolute; inset:11px; display:grid; place-items:center; border:1px solid rgba(255,255,255,.45); color:#fff; font:15px var(--f-display); }
-.thief-back:not(:disabled):hover,.thief-back:not(:disabled):focus-visible { transform:translateY(-8px); box-shadow:0 12px 22px rgba(26,42,75,.28); }
+.thief-back:not(:disabled):hover,.thief-back:not(:disabled):focus-visible { transform:none; border-color:#9bb8ff; box-shadow:0 8px 20px rgba(26,42,75,.3),0 0 0 3px rgba(76,122,220,.18); filter:brightness(1.06); }
 .thief-back:disabled { cursor:default; opacity:.64; }
-.thief-card-backs.duel .thief-back { animation:thiefShake 1s ease-in-out infinite; }
-.thief-card-backs.duel .thief-back:nth-child(2n) { animation-delay:.18s; }
-@keyframes thiefShake { 0%,100%{transform:rotate(-.4deg)} 50%{transform:rotate(.6deg) translateY(-2px)} }
+.thief-card-backs.duel .thief-back { animation:none; border-color:#b6c9ff; box-shadow:0 6px 14px rgba(26,42,75,.2),0 0 0 2px rgba(76,122,220,.12); }
 .thief-actions { display:flex; flex-wrap:wrap; justify-content:center; gap:8px; margin-top:14px; }
 .thief-actions .btn { min-width:150px; }
 .thief-side-card { padding:14px; border:1px solid var(--line); border-radius:13px; background:#fff; }
