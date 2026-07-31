@@ -102,6 +102,194 @@ body.game-thief { --thief-accent:#6d4fd3; --thief-soft:#f1edff; }
   body.game-thief .chat-input .btn{min-height:34px!important;padding:5px 9px!important;font-size:10px!important}
   .thief-stage{gap:9px;padding-bottom:12px}.thief-status{grid-template-columns:repeat(2,minmax(0,1fr))}.thief-players{grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}.thief-player{padding:8px}.thief-player-head .avatar{display:none}.thief-table{gap:8px}.thief-main{padding:10px}.thief-turn h2{font-size:18px}.thief-target{padding:9px;margin-top:10px}.thief-card-backs{flex-wrap:nowrap;justify-content:flex-start;overflow-x:auto;padding:10px 3px 14px;min-height:106px}.thief-back{width:64px;height:92px}.thief-side{display:block}.thief-side-card+.thief-side-card{margin-top:7px}.thief-hand{padding-top:8px}.thief-card{width:72px;height:101px}.thief-actions .btn{min-width:0;flex:1}.thief-result{margin:12px auto;padding:16px}.thief-result h2{font-size:32px}
 }
+
+/* ---------- 도둑잡기 PC 레이아웃 보정 ---------- */
+@media (min-width: 1100px) {
+  body.game-thief .board {
+    padding: 18px 24px 30px;
+  }
+
+  .thief-stage {
+    width: 100%;
+    max-width: 1600px;
+    min-height: calc(100dvh - 98px);
+    margin: 0 auto;
+    padding: 0;
+    gap: 16px;
+  }
+
+  .thief-status {
+    gap: 12px;
+  }
+
+  .thief-status > div {
+    min-height: 66px;
+    padding: 13px 16px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+
+  .thief-status span {
+    font-size: 11px;
+  }
+
+  .thief-status b {
+    margin-top: 6px;
+    font-size: 17px;
+  }
+
+  .thief-players {
+    grid-template-columns: repeat(3, minmax(220px, 1fr));
+    gap: 12px;
+  }
+
+  .thief-player {
+    min-height: 76px;
+    padding: 13px 14px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+
+  .thief-player-copy b {
+    font-size: 15px;
+  }
+
+  .thief-player-copy small {
+    font-size: 12px;
+  }
+
+  .thief-table {
+    grid-template-columns: minmax(0, 1fr) 410px;
+    gap: 16px;
+    align-items: start;
+  }
+
+  .thief-main {
+    min-height: 520px;
+    padding: 22px;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .thief-turn h2 {
+    font-size: 26px;
+  }
+
+  .thief-turn p {
+    font-size: 14px;
+  }
+
+  .thief-target {
+    flex: 1;
+    min-height: 350px;
+    margin-top: 18px;
+    padding: 18px;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .thief-target-head {
+    margin-bottom: 16px;
+  }
+
+  .thief-target-head b {
+    font-size: 16px;
+  }
+
+  .thief-target-head span {
+    font-size: 11px;
+  }
+
+  .thief-card-backs {
+    flex: 1;
+    min-height: 245px;
+    align-content: center;
+    gap: 12px;
+  }
+
+  .thief-back {
+    width: 84px;
+    height: 120px;
+  }
+
+  .thief-side {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .thief-side-card {
+    padding: 16px;
+  }
+
+  .thief-side-card + .thief-side-card {
+    margin-top: 0;
+  }
+
+  .thief-side-card h3 {
+    margin-bottom: 12px;
+    font-size: 15px;
+  }
+
+  .thief-hand {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 10px;
+    overflow: visible;
+    padding: 4px 0 6px;
+  }
+
+  .thief-hand > p {
+    grid-column: 1 / -1;
+  }
+
+  .thief-card {
+    width: 100%;
+    height: auto;
+    aspect-ratio: 84 / 118;
+    min-width: 0;
+  }
+
+  .thief-card-center {
+    font-size: clamp(28px, 2.1vw, 38px);
+  }
+
+  .thief-actions {
+    margin-top: 18px;
+  }
+
+  .thief-actions .btn {
+    min-width: 190px;
+    min-height: 42px;
+  }
+}
+
+@media (min-width: 1700px) {
+  .thief-stage {
+    max-width: 1720px;
+  }
+
+  .thief-table {
+    grid-template-columns: minmax(0, 1fr) 440px;
+  }
+
+  .thief-main {
+    min-height: 560px;
+  }
+
+  .thief-target {
+    min-height: 385px;
+  }
+
+  .thief-back {
+    width: 88px;
+    height: 126px;
+  }
+}
+
 </style>
 </head>
 <body class="is-game game-thief">
