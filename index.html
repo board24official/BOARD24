@@ -441,23 +441,12 @@
   <div class="modal account-modal">
     <div class="account-brand"><span>B24</span><b>BOARD 24</b></div>
     <div class="eyebrow">MEMBER ACCESS</div>
-    <h3>사용자 로그인</h3>
+    <h3>Google 계정 로그인</h3>
+    <p class="lede">Google 계정의 이름으로 바로 시작합니다.<br>닉네임과 직급은 따로 입력하지 않습니다.</p>
     <button class="btn btn-google" id="btnGoogleLogin" type="button">
       <span class="google-mark" aria-hidden="true">G</span>
-      <span>Google로 계속하기</span>
+      <span>Google 계정으로 로그인</span>
     </button>
-    <div class="login-divider"><span>또는 닉네임으로 시작</span></div>
-    <label class="field">
-      <span>이름 또는 닉네임</span>
-      <input type="text" id="inName" maxlength="12" autocomplete="off">
-    </label>
-    <label class="field">
-      <span>직급 또는 소속 (선택)</span>
-      <input type="text" id="inDept" maxlength="16" autocomplete="off">
-    </label>
-    <div class="modal-actions">
-      <button class="btn btn-primary" id="btnLogin">로그인</button>
-    </div>
     <button class="account-admin-link" id="btnAdminLoginOpen">관리자 로그인</button>
   </div>
 </div>
@@ -492,7 +481,7 @@
       <section>
         <h4>업무 도구 이용하기</h4>
         <ol>
-          <li>이름과 직급 또는 소속을 입력해 로그인합니다.</li>
+          <li>Google 계정으로 로그인합니다. 계정 이름이 자동으로 사용자 이름에 적용됩니다.</li>
           <li>업무 도구를 선택하거나 공개 자료실을 엽니다.</li>
           <li>인원을 정하고 필요하면 접근 코드를 설정합니다. 자료실 이름은 개설자 이름으로 자동 생성됩니다.</li>
           <li>참가자가 준비를 완료하면 개설자가 세션을 시작합니다.</li>
@@ -603,14 +592,39 @@
 
   await Core.init();
 
+  // 일반 닉네임 세션은 더 이상 사용하지 않고 Google 계정만 허용한다.
+  if (Core.me && !Core.isGoogleLogin()) Core.logout();
+
+  // 브라우저에 Google 로그인이 유지되어 있으면 팝업 없이 사용자 정보를 복원한다.
+  if (!Core.me && Core.isGoogleLogin()) {
+    const googleUser = Core.store && Core.store._fb && Core.store._fb.user;
+    if (googleUser) {
+      const fallback = String(googleUser.email || '').split('@')[0] || 'Google 사용자';
+      Core.login(googleUser.displayName || fallback, 'Google', googleUser.uid);
+    }
+  }
 
   const $ = (id) => document.getElementById(id);
+
+  function maskPersonName(name) {
+    const chars = Array.from(String(name || '').trim());
+    if (!chars.length) return '사용자';
+    if (chars.length === 1) return chars[0];
+    if (chars.length === 2) return chars[0] + '*';
+    return chars[0] + '*'.repeat(chars.length - 2) + chars[chars.length - 1];
+  }
+
+  function maskRoomTitle(title) {
+    const value = String(title || '');
+    const match = value.match(/^(.+)님의 자료실$/);
+    if (!match) return value;
+    return `${maskPersonName(match[1])}님의 자료실`;
+  }
   const loginModal = $('loginModal');
   const newRoomModal = $('newRoomModal');
   let rooms = [];
   let isAdmin = false;
   let pendingJoinRoomId = new URLSearchParams(location.search).get('room');
-  let loginBusy = false;
   let googleBusy = false;
   let deferredInstallPrompt = null;
   let invitePollTimer = null;
@@ -659,7 +673,7 @@
       const data = await inviteApi(null, { action: 'presence', userId: Core.me.id });
       if (!activeInvite && data.invites && data.invites.length) {
         activeInvite = data.invites.sort((a,b) => b.created - a.created)[0];
-        $('gameInviteText').textContent = `${activeInvite.fromName}님이 “${activeInvite.roomTitle}”에 초대했습니다. 현재 인원 ${activeInvite.count}/${activeInvite.max}명`;
+        $('gameInviteText').textContent = `${activeInvite.fromName}님이 “${maskRoomTitle(activeInvite.roomTitle)}”에 초대했습니다. 현재 인원 ${activeInvite.count}/${activeInvite.max}명`;
         $('gameInviteModal').classList.remove('hidden');
         $('gameInviteAccept').focus();
       }
@@ -685,31 +699,11 @@
       $('whoAvatar').title = `${Core.me.name} · ${Core.me.dept || ''}`;
       loginModal.classList.add('hidden');
     } else {
-      loginBusy = false;
       googleBusy = false;
-      $('btnLogin').disabled = false;
       $('btnGoogleLogin').disabled = false;
       $('whoBox').classList.add('hidden');
       loginModal.classList.remove('hidden');
-      setTimeout(() => $('inName').focus(), 60);
-    }
-  }
-
-  function doLogin() {
-    if (loginBusy || Core.me) return;
-    loginBusy = true;
-    $('btnLogin').disabled = true;
-    try {
-      Core.login($('inName').value, $('inDept').value);
-      paintWho();
-      Core.toast('환영합니다, ' + Core.me.name + '님');
-      if (pendingJoinRoomId) handleJoinLink();
-      else offerRejoin();
-      startInvitePresence();
-    } catch (e) {
-      loginBusy = false;
-      $('btnLogin').disabled = false;
-      Core.toast(e.message);
+      setTimeout(() => $('btnGoogleLogin').focus(), 60);
     }
   }
 
@@ -742,10 +736,7 @@
     }
   }
 
-  $('btnLogin').addEventListener('click', doLogin);
   $('btnGoogleLogin').addEventListener('click', doGoogleLogin);
-  $('inName').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('inDept').focus(); });
-  $('inDept').addEventListener('keydown', (e) => { if (e.key === 'Enter') doLogin(); });
 
   $('btnLogout').addEventListener('click', async () => {
     const googleAccount = Core.isGoogleLogin();
@@ -805,7 +796,7 @@
       localStorage.removeItem('table9:lastRoom');
       return;
     }
-    if (confirm(`이전 작업 자료실 "${r.title}"을 계속 여시겠습니까?`)) {
+    if (confirm(`이전 작업 자료실 "${maskRoomTitle(r.title)}"을 계속 여시겠습니까?`)) {
       location.href = Core.GAMES[r.game].file + '?room=' + r.id;
     } else {
       await Core.leaveRoom(r.id).catch(() => {});
@@ -857,7 +848,7 @@
             <span class="tag-mobile">${gameCode}</span>
           </span>
           <div>
-            <div class="room-title">${Core.esc(r.title)}${r.locked ? ' 🔒' : ''}</div>
+            <div class="room-title">${Core.esc(maskRoomTitle(r.title))}${r.locked ? ' 🔒' : ''}</div>
             <div class="room-sub">${playing ? '처리 중' : '접수 대기'} · 접속 ${alive}명</div>
           </div>
           <div class="room-count ${full ? 'full' : ''}">${ppl.length}/${r.maxSeats}</div>
@@ -884,7 +875,7 @@
       return `<article class="admin-room ${stale ? 'stale' : ''}">
         <div class="admin-room-head">
           <div><span class="tag ${r.game}">${Core.esc(Core.GAMES[r.game]?.name || r.game)}</span>
-          <b>${Core.esc(r.title)}</b> <small>${Core.esc(r.id)} · ${Core.esc(r.phase)}</small></div>
+          <b>${Core.esc(maskRoomTitle(r.title))}</b> <small>${Core.esc(r.id)} · ${Core.esc(r.phase)}</small></div>
           <div class="admin-actions">
             <button class="btn btn-sm btn-primary" data-admin-watch="${r.id}" data-game="${r.game}">관전</button>
             <button class="btn btn-sm" data-admin="skip_turn" data-room="${r.id}">턴 넘기기</button>
@@ -1096,6 +1087,9 @@
         locked: !!pin,
         pin
       });
+      const maskedTitle = `${maskPersonName(Core.me.name)}님의 자료실`.slice(0, 24);
+      await Core.store.set(`rooms/${room.id}/title`, maskedTitle);
+      room.title = maskedTitle;
       // createRoom에서 개설자를 이미 참가자로 저장하므로 여기서 다시 joinRoom을 호출하지 않는다.
       // Google 인증 상태 전환 직후 중복 참가자가 생기는 것을 막는다.
       await Core.copyInviteLink(room.id);
