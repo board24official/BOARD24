@@ -272,6 +272,223 @@ button.code-tile:disabled { cursor:default; }
   }
 }
 
+
+/* 다빈치 코드 타일 영역의 브라우저 스크롤바 숨김 */
+.code-tiles,
+.code-my-tiles {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.code-tiles::-webkit-scrollbar,
+.code-my-tiles::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+  display: none;
+}
+
+
+
+/* ---------- 다빈치 코드 PC 레이아웃 전체 정리 ---------- */
+@media (min-width: 1101px) {
+  body.game-davinci .board {
+    padding: 16px 20px 24px;
+  }
+
+  .code-stage {
+    width: min(1680px, 100%);
+    min-height: auto;
+    gap: 14px;
+    padding: 0 0 16px;
+  }
+
+  .code-status {
+    gap: 10px;
+  }
+
+  .code-status > div {
+    min-height: 66px;
+    padding: 12px 14px;
+    border-radius: 12px;
+  }
+
+  .code-status span {
+    font-size: 10px;
+  }
+
+  .code-status b {
+    margin-top: 6px;
+    font-size: 17px;
+  }
+
+  .code-layout {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+
+  .code-main {
+    min-height: auto;
+    padding: 18px;
+    border-radius: 16px;
+    background: #f5f8fd;
+  }
+
+  .code-turn {
+    padding: 18px 20px;
+    border: 1px solid #dbe3f0;
+    border-radius: 14px;
+    background: #fff;
+  }
+
+  .code-turn h2 {
+    font-size: 27px;
+  }
+
+  .code-turn p {
+    margin-top: 8px;
+    font-size: 13px;
+  }
+
+  .code-players {
+    margin-top: 14px;
+    gap: 12px;
+  }
+
+  .code-row {
+    min-height: auto;
+    padding: 15px 16px;
+    border-radius: 14px;
+  }
+
+  .code-row-head {
+    margin-bottom: 12px;
+  }
+
+  .code-row-name b {
+    font-size: 15px;
+  }
+
+  .code-tiles {
+    min-height: auto;
+    flex-wrap: nowrap;
+    justify-content: flex-start;
+    overflow-x: auto;
+    overflow-y: visible;
+    padding: 6px 2px 8px;
+    gap: 8px;
+  }
+
+  .code-tile {
+    width: 74px;
+    height: 110px;
+  }
+
+  .code-tile .num,
+  .code-tile .hidden-label {
+    font-size: 38px;
+  }
+
+  .code-wrong-list {
+    margin-top: 10px;
+  }
+
+  .code-draw-area,
+  .code-guess-panel,
+  .code-decision {
+    margin-top: 14px;
+    padding: 18px;
+    border-radius: 14px;
+    background: #fff;
+  }
+
+  .code-draw-area {
+    justify-content: center;
+    border: 1px solid #dce4f1;
+  }
+
+  .code-draw-btn {
+    min-width: 280px;
+    min-height: 50px;
+  }
+
+  .code-guess-panel {
+    border-color: #d5e1fb;
+  }
+
+  .code-decision {
+    border-color: #d2e6d9;
+  }
+
+  .code-numbers {
+    grid-template-columns: repeat(12, minmax(44px, 1fr));
+    gap: 7px;
+  }
+
+  .code-number {
+    min-height: 46px;
+    font-size: 16px;
+  }
+
+  .code-side {
+    display: grid;
+    grid-template-columns: minmax(0, 1.5fr) minmax(280px, 1fr) minmax(260px, 1fr);
+    gap: 12px;
+    align-items: stretch;
+  }
+
+  .code-side-card {
+    height: 100%;
+    padding: 16px;
+    border-radius: 14px;
+  }
+
+  .code-side-card h3 {
+    margin-bottom: 12px;
+    font-size: 15px;
+  }
+
+  .code-my-tiles {
+    display: flex;
+    flex-wrap: nowrap;
+    justify-content: flex-start;
+    overflow-x: auto;
+    padding: 4px 2px 8px;
+    gap: 8px;
+  }
+
+  .code-my-tiles .code-tile {
+    width: 78px;
+    height: 114px;
+    flex: 0 0 auto;
+  }
+
+  .code-pending {
+    min-height: 180px;
+  }
+
+  .code-pending p {
+    margin: 0;
+    color: #7b8799;
+    font-size: 12px;
+    line-height: 1.6;
+  }
+}
+
+@media (min-width: 1400px) {
+  .code-side {
+    grid-template-columns: minmax(0, 1.65fr) minmax(300px, 1fr) minmax(280px, 1fr);
+  }
+
+  .code-tile {
+    width: 78px;
+    height: 116px;
+  }
+
+  .code-my-tiles .code-tile {
+    width: 82px;
+    height: 120px;
+  }
+}
+
 </style>
 </head>
 <body class="is-game game-davinci">
