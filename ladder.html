@@ -510,6 +510,46 @@
   .bot-paywall .modal-actions { position: sticky; bottom: 0; background: inherit; padding-top: 8px; }
 }
 </style>
+
+<style id="board24-ai-assist-style">
+.ai-assist-toggle {
+  position: relative;
+  font-weight: 700;
+}
+.ai-assist-toggle .ai-assist-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 9px;
+  line-height: 1;
+  letter-spacing: -.3px;
+}
+.ai-assist-toggle.is-on {
+  border-color: #4f8f6b !important;
+  background: #eaf7ef !important;
+  color: #23613e !important;
+}
+.ai-assist-toggle.is-on::after {
+  content: "";
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: #2f9a59;
+}
+.ai-assist-toggle:disabled {
+  opacity: .45;
+  cursor: not-allowed;
+}
+@media (max-width: 860px) {
+  .ai-assist-toggle .ai-assist-mark {
+    font-size: 8px;
+  }
+}
+</style>
+
 </head>
 <body class="is-game game-ladder">
 
@@ -543,6 +583,10 @@
         <path d="M9.5 20h5"/>
       </svg><span class="header-label">알림</span>
     </button>
+    <button class="btn btn-ghost btn-sm header-action ai-assist-toggle" id="aiAssistToggle"
+      type="button" title="AI 대리 켜기" aria-label="AI 대리 켜기" aria-pressed="false">
+      <span class="header-icon ai-assist-mark" aria-hidden="true">AI</span><span class="header-label">AI 전환</span>
+    </button>
     <button class="btn btn-ghost btn-sm header-action" data-leave title="나가기" aria-label="나가기">
       <span class="header-icon" aria-hidden="true">↗</span><span class="header-label">나가기</span>
     </button>
@@ -567,7 +611,6 @@
   </aside>
 </div>
 
-<script src="assets/firebase-config.js"></script>
 <script src="assets/firebase.js"></script>
 <script src="assets/core.js"></script>
 <script>
@@ -739,12 +782,52 @@
   Core.startHeartbeat(roomId);
 
   let room = null;
+
+  const aiAssistToggle = document.getElementById('aiAssistToggle');
+
+  function isAutoControlled(player) {
+    return !!(player && (player.bot || player.aiAssist));
+  }
+
+  function paintAiAssist(r) {
+    const me = r && r.players ? r.players[Core.me.id] : null;
+    const enabled = !!(me && me.aiAssist && !me.bot);
+    if (!aiAssistToggle) return;
+
+    aiAssistToggle.classList.toggle('is-on', enabled);
+    aiAssistToggle.setAttribute('aria-pressed', String(enabled));
+    aiAssistToggle.disabled = !me || !!me.bot || r.phase === 'over';
+
+    const title = enabled ? 'AI 대리 끄기' : 'AI 대리 켜기';
+    aiAssistToggle.title = title;
+    aiAssistToggle.setAttribute('aria-label', title);
+
+    const label = aiAssistToggle.querySelector('.header-label');
+    if (label) label.textContent = enabled ? 'AI ON' : 'AI 전환';
+    document.body.classList.toggle('ai-assist-on', enabled);
+  }
+
+  aiAssistToggle?.addEventListener('click', async () => {
+    const current = room && room.players ? room.players[Core.me.id] : null;
+    if (!current || current.bot) return;
+
+    const turnOn = !current.aiAssist;
+    await Core.updateRoom(roomId, (r) => {
+      const player = r && r.players ? r.players[Core.me.id] : null;
+      if (!player || player.bot) return false;
+      player.aiAssist = turnOn;
+      player.aiAssistAt = turnOn ? Core.now() : null;
+    });
+
+    Core.toast(turnOn
+      ? 'AI 대리를 켰습니다. 내 차례와 필요한 선택을 AI가 대신 진행합니다.'
+      : 'AI 대리를 껐습니다. 이제 직접 진행합니다.');
+  });
   let lobbyPeople = [];
   let invitePresenceTimer = null;
   refreshLobbyPeople();
   invitePresenceTimer = setInterval(refreshLobbyPeople, 5000);
   async function inviteApi(payload, query) {
-    if (location.hostname.endsWith('github.io')) return { ok:true, people:[], invites:[] };
     const url = 'api.php' + (query ? '?' + new URLSearchParams(query) : '');
     const res = await fetch(url, query ? { cache:'no-store' } : { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload || {}) });
     const data = await res.json().catch(() => ({}));
@@ -921,7 +1004,7 @@
       return;
     }
     if (!isHost(r)) return;
-    const bot = ps.find((p) => p.bot && choices[p.id] == null);
+    const bot = ps.find((p) => isAutoControlled(p) && choices[p.id] == null);
     if (bot) {
       rankTimer = setTimeout(() => Core.updateRoom(roomId, (rr) => {
         if (rr.phase !== 'rank_draw') return false;
@@ -1216,7 +1299,7 @@
   function maybeTaxBots() {
     if (!room || room.phase !== 'tax' || room.taxStage !== 'return' || !isHost(room)) return;
     const list = seatedList(room).sort((a, b) => a.rank - b.rank);
-    const targets = [list[0], list[1]].filter((p) => p && p.bot && !(room.taxReturned || {})[p.id]);
+    const targets = [list[0], list[1]].filter((p) => p && isAutoControlled(p) && !(room.taxReturned || {})[p.id]);
     if (!targets.length) return;
     clearTimeout(botTimer);
     botTimer = setTimeout(async () => {
@@ -1224,7 +1307,7 @@
         if (r.phase !== 'tax' || r.taxStage !== 'return') return false;
         const ps = seatedList(r).sort((a, b) => a.rank - b.rank);
         for (const p of [ps[0], ps[1]]) {
-          if (!p || !p.bot || (r.taxReturned || {})[p.id]) continue;
+          if (!p || !isAutoControlled(p) || (r.taxReturned || {})[p.id]) continue;
           const need = p.rank === 0 ? 2 : 1;
           // 봇은 받은 강한 카드를 보존하도록 가장 약한 카드부터 돌려줌
           const cards = p.hand.slice().sort((a, b) => b - a).slice(0, need);
@@ -1288,14 +1371,14 @@
     if (!room || room.phase !== 'playing' || !isHost(room)) return;
     const alive = seatedList(room).filter((p) => !p.done);
     const cur = alive[room.turn % alive.length];
-    if (!cur || !cur.bot) return;
+    if (!cur || !isAutoControlled(cur)) return;
 
     botTimer = setTimeout(async () => {
       await Core.updateRoom(roomId, (r) => {
         if (r.phase !== 'playing') return false;
         const al = seatedList(r).filter((p) => !p.done);
         const b = al[r.turn % al.length];
-        if (!b || !b.bot) return false;
+        if (!b || !isAutoControlled(b)) return false;
 
         const play = pickBotPlay(b.hand, r.pile);
 
@@ -1690,6 +1773,7 @@
       return;
     }
     room = r;
+    paintAiAssist(r);
     document.body.dataset.gamePhase = r.phase || 'lobby';
     if (r.phase === 'lobby') renderLobby(r);
     else if (r.phase === 'rank_draw') renderRankDraw(r);

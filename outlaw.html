@@ -2251,6 +2251,46 @@
 }
 </style>
 
+
+<style id="board24-ai-assist-style">
+.ai-assist-toggle {
+  position: relative;
+  font-weight: 700;
+}
+.ai-assist-toggle .ai-assist-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 9px;
+  line-height: 1;
+  letter-spacing: -.3px;
+}
+.ai-assist-toggle.is-on {
+  border-color: #4f8f6b !important;
+  background: #eaf7ef !important;
+  color: #23613e !important;
+}
+.ai-assist-toggle.is-on::after {
+  content: "";
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: #2f9a59;
+}
+.ai-assist-toggle:disabled {
+  opacity: .45;
+  cursor: not-allowed;
+}
+@media (max-width: 860px) {
+  .ai-assist-toggle .ai-assist-mark {
+    font-size: 8px;
+  }
+}
+</style>
+
 </head>
 <body class="is-game game-outlaw">
 
@@ -2287,6 +2327,10 @@
     </button>
     <button class="btn btn-ghost btn-sm header-action" id="roleGuideBtn" title="역할 안내" aria-label="역할 안내">
       <span class="header-icon" aria-hidden="true">?</span><span class="header-label">역할 안내</span>
+    </button>
+    <button class="btn btn-ghost btn-sm header-action ai-assist-toggle" id="aiAssistToggle"
+      type="button" title="AI 대리 켜기" aria-label="AI 대리 켜기" aria-pressed="false">
+      <span class="header-icon ai-assist-mark" aria-hidden="true">AI</span><span class="header-label">AI 전환</span>
     </button>
     <button class="btn btn-ghost btn-sm header-action" data-leave title="방 나가기" aria-label="방 나가기">
       <span class="header-icon" aria-hidden="true">↗</span><span class="header-label">나가기</span>
@@ -2670,6 +2714,47 @@
   Core.startHeartbeat(roomId);
 
   let room = null, sel = -1, botTimer = null;
+
+  const aiAssistToggle = document.getElementById('aiAssistToggle');
+
+  function isAutoControlled(player) {
+    return !!(player && (player.bot || player.aiAssist));
+  }
+
+  function paintAiAssist(r) {
+    const me = r && r.players ? r.players[Core.me.id] : null;
+    const enabled = !!(me && me.aiAssist && !me.bot);
+    if (!aiAssistToggle) return;
+
+    aiAssistToggle.classList.toggle('is-on', enabled);
+    aiAssistToggle.setAttribute('aria-pressed', String(enabled));
+    aiAssistToggle.disabled = !me || !!me.bot || r.phase === 'over';
+
+    const title = enabled ? 'AI 대리 끄기' : 'AI 대리 켜기';
+    aiAssistToggle.title = title;
+    aiAssistToggle.setAttribute('aria-label', title);
+
+    const label = aiAssistToggle.querySelector('.header-label');
+    if (label) label.textContent = enabled ? 'AI ON' : 'AI 전환';
+    document.body.classList.toggle('ai-assist-on', enabled);
+  }
+
+  aiAssistToggle?.addEventListener('click', async () => {
+    const current = room && room.players ? room.players[Core.me.id] : null;
+    if (!current || current.bot) return;
+
+    const turnOn = !current.aiAssist;
+    await Core.updateRoom(roomId, (r) => {
+      const player = r && r.players ? r.players[Core.me.id] : null;
+      if (!player || player.bot) return false;
+      player.aiAssist = turnOn;
+      player.aiAssistAt = turnOn ? Core.now() : null;
+    });
+
+    Core.toast(turnOn
+      ? 'AI 대리를 켰습니다. 내 차례와 필요한 선택을 AI가 대신 진행합니다.'
+      : 'AI 대리를 껐습니다. 이제 직접 진행합니다.');
+  });
   let selectedHandKey = null;
   let medicPickMode = false;
   let medicPickKeys = new Set();
@@ -2981,7 +3066,7 @@
         characterChoices[p.id] = Core.shuffle(CHARACTER_IDS.slice(), Core.mulberry32(r.seed + 101 + i)).slice(0, 2);
       });
 
-      ps.filter((p) => p.bot).forEach((p) => {
+      ps.filter((p) => isAutoControlled(p)).forEach((p) => {
         const card = roleCards.find((x) => !x.takenBy);
         if (card) { card.takenBy = p.id; p.role = card.role; }
         p.character = characterChoices[p.id][0];
@@ -3926,7 +4011,7 @@
     if (pd) {
       if (pd.type === 'store') {
         const who = room.players[pd.queue?.[0]];
-        if (who && who.bot) botTimer = setTimeout(() => botChooseStore(who.id), 650);
+        if (who && isAutoControlled(who)) botTimer = setTimeout(() => botChooseStore(who.id), 650);
         return;
       }
       // 반응이 필요한 봇 찾기
@@ -3934,14 +4019,14 @@
       if (pd.type === 'bang') who = room.players[pd.to];
       else if (pd.type === 'duel') who = room.players[pd.turnOf];
       else if (pd.queue && pd.queue.length) who = room.players[pd.queue[0]];
-      if (who && who.bot) {
+      if (who && isAutoControlled(who)) {
         botTimer = setTimeout(() => botRespond(who.id, pd), 800);
       }
       return;
     }
 
     const cur = curPlayer(room);
-    if (!cur || !cur.bot) return;
+    if (!cur || !isAutoControlled(cur)) return;
     botTimer = setTimeout(() => botTurn(cur.id), 850);
   }
 
@@ -3949,7 +4034,7 @@
     await Core.updateRoom(roomId, (r) => {
       const pd = r.pending;
       const b = r.players[botId];
-      if (!b || !b.bot || !pd || pd.type !== 'store' || pd.queue?.[0] !== botId || !pd.cards?.length) return false;
+      if (!b || !isAutoControlled(b) || !pd || pd.type !== 'store' || pd.queue?.[0] !== botId || !pd.cards?.length) return false;
       b.hand = (b.hand || []).concat(pd.cards.shift());
       pd.queue.shift();
       if (!pd.queue.length || !pd.cards.length) r.pending = null;
@@ -3960,7 +4045,7 @@
     let botMsg = '';
     await Core.updateRoom(roomId, (r) => {
       const b = r.players[botId];
-      if (!b || !b.bot || !r.pending) return false;
+      if (!b || !isAutoControlled(b) || !r.pending) return false;
       r.discard = r.discard || [];
       r.deck = r.deck || [];
       const p2 = r.pending;
@@ -4045,7 +4130,7 @@
     let botMsg = '';
     await Core.updateRoom(roomId, (r) => {
       const b = r.players[botId];
-      if (!b || !b.bot || r.phase !== 'playing') return false;
+      if (!b || !isAutoControlled(b) || r.phase !== 'playing') return false;
       const cur = curPlayer(r);
       if (!cur || cur.id !== botId) return false;
       r.discard = r.discard || [];
@@ -4313,6 +4398,49 @@
       el.addEventListener('click', () => chooseRoleCard(el.dataset.roleCard)));
     board.querySelectorAll('[data-character]').forEach((el) =>
       el.addEventListener('click', () => chooseCharacter(el.dataset.character)));
+  }
+
+
+  function maybeAutoSetup() {
+    clearTimeout(botTimer);
+    if (!room || room.phase !== 'setup' || !isHost(room)) return;
+
+    const waiting = seatedList(room).some((p) =>
+      isAutoControlled(p) && (!p.role || !p.character));
+    if (!waiting) return;
+
+    botTimer = setTimeout(async () => {
+      let began = false;
+      let firstName = '';
+      await Core.updateRoom(roomId, (r) => {
+        if (r.phase !== 'setup' || !r.setup) return false;
+
+        seatedList(r).filter((p) => isAutoControlled(p)).forEach((p) => {
+          if (!p.role) {
+            const card = (r.setup.roleCards || []).find((x) => !x.takenBy);
+            if (card) {
+              card.takenBy = p.id;
+              p.role = card.role;
+            }
+          }
+          if (p.role && !p.character) {
+            const choices = r.setup.characterChoices && r.setup.characterChoices[p.id];
+            if (choices && choices.length) p.character = choices[0];
+          }
+        });
+
+        if (seatedList(r).every((p) => p.role && p.character)) {
+          firstName = initializePlaying(r);
+          began = true;
+        }
+      });
+
+      if (began) {
+        Core.sys(roomId, '배정이 완료되었습니다. 시작 항목을 확인하세요.');
+        Core.log(roomId, '<b>세션 시작</b>');
+        if (firstName) Core.log(roomId, `<b>${Core.esc(firstName)}</b> 님의 작업 차례`);
+      }
+    }, 550);
   }
 
   /* ---------- 렌더: 게임 ---------- */
@@ -4636,9 +4764,15 @@
         </div>
         <div style="display:flex;gap:8px;flex-wrap:wrap">
           ${isHost(r) ? '<button class="btn btn-primary" id="btnAgain">한 판 더</button>' : ''}
-          <a class="btn" href="index.html">자료실 목록으로</a>
+          <button class="btn" type="button" id="btnLeaveAfterGame">자료실 목록으로</button>
         </div>
       </div>`;
+
+    document.getElementById('btnLeaveAfterGame')?.addEventListener('click', async () => {
+      sessionStorage.setItem('table9:suppressRejoinOnce', '1');
+      await Core.leaveRoom(roomId).catch(() => {});
+      location.href = 'index.html';
+    });
 
     const ab = document.getElementById('btnAgain');
     ab && ab.addEventListener('click', async () => {
@@ -4647,7 +4781,7 @@
         rr.seed = Math.floor(Math.random() * 2 ** 31);
         Object.values(rr.players).forEach((p) => {
           p.hand = []; p.eq = []; p.hp = 0; p.role = null;
-          p.ready = !!p.bot;
+          p.ready = !!p.bot || !!p.aiAssist;
         });
         delete rr.deck; delete rr.discard; delete rr.pending;
         delete rr.turn; delete rr.step; delete rr.winner; delete rr.startedAt;
@@ -4734,10 +4868,11 @@
       return;
     }
     room = r;
+    paintAiAssist(r);
     document.body.dataset.gamePhase = r.phase || 'lobby';
     try {
       if (r.phase === 'lobby') renderLobby(r);
-      else if (r.phase === 'setup') renderSetup(r);
+      else if (r.phase === 'setup') { renderSetup(r); maybeAutoSetup(); }
       else if (r.phase === 'over') renderOver(r);
       else { renderGame(r); showInitialHand(r); maybeBot(); }
     } catch (err) {

@@ -825,6 +825,46 @@
   .bot-paywall .modal-actions { position: sticky; bottom: 0; background: inherit; padding-top: 8px; }
 }
 </style>
+
+<style id="board24-ai-assist-style">
+.ai-assist-toggle {
+  position: relative;
+  font-weight: 700;
+}
+.ai-assist-toggle .ai-assist-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 9px;
+  line-height: 1;
+  letter-spacing: -.3px;
+}
+.ai-assist-toggle.is-on {
+  border-color: #4f8f6b !important;
+  background: #eaf7ef !important;
+  color: #23613e !important;
+}
+.ai-assist-toggle.is-on::after {
+  content: "";
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: #2f9a59;
+}
+.ai-assist-toggle:disabled {
+  opacity: .45;
+  cursor: not-allowed;
+}
+@media (max-width: 860px) {
+  .ai-assist-toggle .ai-assist-mark {
+    font-size: 8px;
+  }
+}
+</style>
+
 </head>
 <body class="is-game game-pass">
 
@@ -858,6 +898,10 @@
         <path d="M18 8.5a6 6 0 0 0-12 0c0 7-3 7-3 8.5h18c0-1.5-3-1.5-3-8.5Z"/>
         <path d="M9.5 20h5"/>
       </svg><span class="header-label">알림</span>
+    </button>
+    <button class="btn btn-ghost btn-sm header-action ai-assist-toggle" id="aiAssistToggle"
+      type="button" title="AI 대리 켜기" aria-label="AI 대리 켜기" aria-pressed="false">
+      <span class="header-icon ai-assist-mark" aria-hidden="true">AI</span><span class="header-label">AI 전환</span>
     </button>
     <button class="btn btn-ghost btn-sm header-action" data-leave title="나가기" aria-label="나가기">
       <span class="header-icon" aria-hidden="true">↗</span><span class="header-label">나가기</span>
@@ -1052,6 +1096,47 @@
   Core.startHeartbeat(roomId);
 
   let room = null;
+
+  const aiAssistToggle = document.getElementById('aiAssistToggle');
+
+  function isAutoControlled(player) {
+    return !!(player && (player.bot || player.aiAssist));
+  }
+
+  function paintAiAssist(r) {
+    const me = r && r.players ? r.players[Core.me.id] : null;
+    const enabled = !!(me && me.aiAssist && !me.bot);
+    if (!aiAssistToggle) return;
+
+    aiAssistToggle.classList.toggle('is-on', enabled);
+    aiAssistToggle.setAttribute('aria-pressed', String(enabled));
+    aiAssistToggle.disabled = !me || !!me.bot || r.phase === 'over';
+
+    const title = enabled ? 'AI 대리 끄기' : 'AI 대리 켜기';
+    aiAssistToggle.title = title;
+    aiAssistToggle.setAttribute('aria-label', title);
+
+    const label = aiAssistToggle.querySelector('.header-label');
+    if (label) label.textContent = enabled ? 'AI ON' : 'AI 전환';
+    document.body.classList.toggle('ai-assist-on', enabled);
+  }
+
+  aiAssistToggle?.addEventListener('click', async () => {
+    const current = room && room.players ? room.players[Core.me.id] : null;
+    if (!current || current.bot) return;
+
+    const turnOn = !current.aiAssist;
+    await Core.updateRoom(roomId, (r) => {
+      const player = r && r.players ? r.players[Core.me.id] : null;
+      if (!player || player.bot) return false;
+      player.aiAssist = turnOn;
+      player.aiAssistAt = turnOn ? Core.now() : null;
+    });
+
+    Core.toast(turnOn
+      ? 'AI 대리를 켰습니다. 내 차례와 필요한 선택을 AI가 대신 진행합니다.'
+      : 'AI 대리를 껐습니다. 이제 직접 진행합니다.');
+  });
   let lobbyPeople = [];
   let invitePresenceTimer = null;
   refreshLobbyPeople();
@@ -1215,14 +1300,14 @@
 
     const ps = seatedList(room);
     const cur = ps[room.turn % ps.length];
-    if (!cur || !cur.bot) return;
+    if (!cur || !isAutoControlled(cur)) return;
 
     botTimer = setTimeout(async () => {
       const r = room;
       if (!r || r.phase !== 'playing') return;
       const list = seatedList(r);
       const c = list[r.turn % list.length];
-      if (!c || !c.bot) return;
+      if (!c || !isAutoControlled(c)) return;
 
       // 간단한 휴리스틱: 실질 비용이 낮거나 연결 타일이면 가져감
       const eff = r.tile - (r.pot || 0);
@@ -1234,7 +1319,7 @@
         if (rr.phase !== 'playing') return false;
         const l = seatedList(rr);
         const b = l[rr.turn % l.length];
-        if (!b || !b.bot) return false;
+        if (!b || !isAutoControlled(b)) return false;
         const bp = rr.players[b.id];
 
         if (take) {
@@ -1494,9 +1579,15 @@
 
         <div style="display:flex;gap:8px;margin-top:24px;flex-wrap:wrap">
           ${isHost(r) ? '<button class="btn btn-primary" id="btnAgain">한 판 더</button>' : ''}
-          <a class="btn" href="index.html">자료실 목록으로</a>
+          <button class="btn" type="button" id="btnLeaveAfterGame">자료실 목록으로</button>
         </div>
       </div>`;
+
+    document.getElementById('btnLeaveAfterGame')?.addEventListener('click', async () => {
+      sessionStorage.setItem('table9:suppressRejoinOnce', '1');
+      await Core.leaveRoom(roomId).catch(() => {});
+      location.href = 'index.html';
+    });
 
     const ab = document.getElementById('btnAgain');
     ab && ab.addEventListener('click', async () => {
@@ -1506,7 +1597,7 @@
         Object.values(rr.players).forEach((p) => {
           p.tiles = [];
           p.chips = 0;
-          p.ready = !!p.bot;
+          p.ready = !!p.bot || !!p.aiAssist;
         });
         delete rr.deck; delete rr.tile; delete rr.pot; delete rr.pos; delete rr.turn;
       });
@@ -1527,6 +1618,7 @@
     }
 
     room = r;
+    paintAiAssist(r);
     document.body.dataset.gamePhase = r.phase || 'lobby';
 
     if (r.phase !== lastPhase) {
