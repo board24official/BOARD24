@@ -237,7 +237,125 @@ body.game-thief { --thief-accent:#6d4fd3; --thief-soft:#f1edff; }
 
   function render(r){document.body.dataset.gamePhase=r.phase||'lobby';paintAi(r);if(r.phase==='lobby')renderLobby(r);else if(r.phase==='playing')renderGame(r);else renderOver(r);}
 
-  function maybeAuto(){clearTimeout(botTimer);if(!room||room.phase!=='playing'||!isHost(room))return;const pd=room.pendingPower;if(pd){const owner=room.players[pd.ownerId];if(pd.deadline<=Core.now()){botTimer=setTimeout(()=>Core.updateRoom(roomId,r=>{if(r.pendingPower&&r.pendingPower.deadline<=Core.now())resolvePower(r,[]);}),80);return;}if(isAuto(owner)){botTimer=setTimeout(async()=>{const latest=room;if(!latest.pendingPower)return;const targets=activePlayers(latest).filter(p=>p.id!==owner.id);if(!targets.length)return;let target=targets.slice().sort((a,b)=>(b.hand||[]).length-(a.hand||[]).length)[0];let idx=latest.pendingPower.rank==='A'?seededIndex(latest,target.hand.length):-1;await usePower(target.id,idx,owner.id);},650);}return;}const cur=currentPlayer(room);if(!isAuto(cur))return;botTimer=setTimeout(async()=>{if(!room||room.phase!=='playing'||room.pendingPower)return;const actor=currentPlayer(room);if(!isAuto(actor))return;if(!actor.guessUsed&&activePlayers(room).length<=3&&Math.random()<.28){const suspects=activePlayers(room).filter(p=>p.id!==actor.id);const t=suspects[Math.floor(Math.random()*suspects.length)];if(t){await Core.updateRoom(roomId,r=>{const current=currentPlayer(r),target=r.players[t.id];if(!current||current.id!==actor.id||current.guessUsed||!target)return false;current.guessUsed=true;const correct=(target.hand||[]).includes('JOKER');const moved=transferRandom(r,target,current,correct?1:2);const pair=removePairs(current,true);markEscapes(r);r.lastAction=correct?`${current.name}님의 도둑 지목이 적중했습니다.`:`${current.name}님의 도둑 지목이 빗나가 카드 ${moved.length}장을 받았습니다.`;const deferred=applyImmediatePowers(r,current,pair.powers);queueOrAdvance(r,current.id,deferred);});return;}}const target=drawTarget(room);if(!target)return;const idx=Math.floor(Math.random()*Math.max(1,(target.hand||[]).length));await Core.updateRoom(roomId,r=>{if(r.phase!=='playing'||r.pendingPower)return false;const a=currentPlayer(r),t=drawTarget(r);if(!a||a.id!==actor.id||!t)return false;if((t.shield||0)>0){t.shield--;r.lastAction=`${t.name}님의 방어막이 뽑기를 막았습니다.`;queueOrAdvance(r,a.id,[]);return;}const at=Math.min(idx,t.hand.length-1);const card=t.hand.splice(at,1)[0];a.hand.push(card);if(card==='JOKER')addJokerTrail(r,t.id,a.id);const pair=removePairs(a,true);markEscapes(r);r.lastAction=`${a.name}님이 ${t.name}님에게서 카드 1장을 뽑았습니다.`;const deferred=applyImmediatePowers(r,a,pair.powers);queueOrAdvance(r,a.id,deferred);});},650);}
+  function scheduleBotAction(delay, action){
+    if(botTimer) return;
+    botTimer=setTimeout(async()=>{
+      botTimer=null;
+      try{
+        await action();
+      }catch(error){
+        console.error('도둑잡기 AI 자동 진행 오류',error);
+      }
+    },delay);
+  }
+
+  function maybeAuto(){
+    if(!room||room.phase!=='playing'||!isHost(room))return;
+    if(botTimer)return;
+
+    const pd=room.pendingPower;
+    if(pd){
+      const owner=room.players[pd.ownerId];
+
+      if(pd.deadline<=Core.now()){
+        scheduleBotAction(80,()=>Core.updateRoom(roomId,r=>{
+          if(r.pendingPower&&r.pendingPower.deadline<=Core.now())resolvePower(r,[]);
+        }));
+        return;
+      }
+
+      if(isAuto(owner)){
+        scheduleBotAction(650,async()=>{
+          const latest=room;
+          const pending=latest?.pendingPower;
+          if(!pending||pending.ownerId!==owner.id)return;
+
+          const targets=activePlayers(latest).filter(p=>p.id!==owner.id);
+          if(!targets.length){
+            await Core.updateRoom(roomId,r=>{
+              if(r.pendingPower?.ownerId===owner.id)resolvePower(r,[]);
+            });
+            return;
+          }
+
+          const target=targets.slice().sort((a,b)=>(b.hand||[]).length-(a.hand||[]).length)[0];
+          const idx=pending.rank==='A'
+            ? seededIndex(latest,Math.max(1,(target.hand||[]).length))
+            : -1;
+
+          await usePower(target.id,idx,owner.id);
+        });
+      }
+      return;
+    }
+
+    const cur=currentPlayer(room);
+    if(!isAuto(cur))return;
+
+    scheduleBotAction(650,async()=>{
+      if(!room||room.phase!=='playing'||room.pendingPower)return;
+
+      const actor=currentPlayer(room);
+      if(!isAuto(actor)||actor.id!==cur.id)return;
+
+      if(!actor.guessUsed&&activePlayers(room).length<=3&&Math.random()<.28){
+        const suspects=activePlayers(room).filter(p=>p.id!==actor.id);
+        const target=suspects[Math.floor(Math.random()*suspects.length)];
+
+        if(target){
+          await Core.updateRoom(roomId,r=>{
+            const current=currentPlayer(r);
+            const accused=r.players[target.id];
+            if(!current||current.id!==actor.id||current.guessUsed||!accused)return false;
+
+            current.guessUsed=true;
+            const correct=(accused.hand||[]).includes('JOKER');
+            const moved=transferRandom(r,accused,current,correct?1:2);
+            const pair=removePairs(current,true);
+            markEscapes(r);
+            r.lastAction=correct
+              ? `${current.name}님의 도둑 지목이 적중했습니다.`
+              : `${current.name}님의 도둑 지목이 빗나가 카드 ${moved.length}장을 받았습니다.`;
+            const deferred=applyImmediatePowers(r,current,pair.powers);
+            queueOrAdvance(r,current.id,deferred);
+          });
+          return;
+        }
+      }
+
+      const target=drawTarget(room);
+      if(!target||(target.hand||[]).length===0)return;
+
+      const idx=Math.floor(Math.random()*target.hand.length);
+      await Core.updateRoom(roomId,r=>{
+        if(r.phase!=='playing'||r.pendingPower)return false;
+
+        const current=currentPlayer(r);
+        const drawFrom=drawTarget(r);
+        if(!current||current.id!==actor.id||!drawFrom||(drawFrom.hand||[]).length===0)return false;
+
+        if((drawFrom.shield||0)>0){
+          drawFrom.shield--;
+          r.lastAction=`${drawFrom.name}님의 방어막이 뽑기를 막았습니다.`;
+          queueOrAdvance(r,current.id,[]);
+          return;
+        }
+
+        const at=Math.min(idx,drawFrom.hand.length-1);
+        const card=drawFrom.hand.splice(at,1)[0];
+        current.hand=current.hand||[];
+        current.hand.push(card);
+
+        if(card==='JOKER')addJokerTrail(r,drawFrom.id,current.id);
+
+        const pair=removePairs(current,true);
+        markEscapes(r);
+        r.lastAction=`${current.name}님이 ${drawFrom.name}님에게서 카드 1장을 뽑았습니다.`;
+        const deferred=applyImmediatePowers(r,current,pair.powers);
+        queueOrAdvance(r,current.id,deferred);
+      });
+    });
+  }
 
   function maybeDeadline(){if(!room||room.phase!=='playing'||!isHost(room)||room.pendingPower||!room.duel||!room.turnDeadline||room.turnDeadline>Core.now())return;const cur=currentPlayer(room),target=drawTarget(room);if(!cur||!target)return;Core.updateRoom(roomId,r=>{if(r.phase!=='playing'||r.pendingPower||!r.duel||r.turnDeadline>Core.now())return false;const a=currentPlayer(r),t=drawTarget(r);if(!a||!t)return false;if((t.shield||0)>0){t.shield--;r.lastAction=`${t.name}님의 방어막이 뽑기를 막았습니다.`;queueOrAdvance(r,a.id,[]);return;}const idx=seededIndex(r,t.hand.length),card=t.hand.splice(idx,1)[0];a.hand.push(card);if(card==='JOKER')addJokerTrail(r,t.id,a.id);const pair=removePairs(a,true);markEscapes(r);r.lastAction=`시간 초과 · ${a.name}님이 무작위 카드를 뽑았습니다.`;const deferred=applyImmediatePowers(r,a,pair.powers);queueOrAdvance(r,a.id,deferred);});}
 
@@ -245,7 +363,7 @@ body.game-thief { --thief-accent:#6d4fd3; --thief-soft:#f1edff; }
   tickTimer=setInterval(()=>{if(room?.phase==='playing'){render(room);maybeDeadline();maybeAuto();}},500);
 
   document.querySelector('[data-leave]').addEventListener('click',async()=>{if(!confirm('자료실에서 나가시겠습니까?'))return;sessionStorage.setItem('table9:suppressRejoinOnce','1');await Core.updateRoom(roomId,r=>{if(r.phase!=='playing')return;const leaving=r.players?.[Core.me.id];if(!leaving||(leaving.hand||[]).length===0)return;const target=activePlayers(r).find(p=>p.id!==leaving.id);if(!target)return;const cards=leaving.hand.splice(0);target.hand=(target.hand||[]).concat(cards);if(cards.includes('JOKER'))addJokerTrail(r,leaving.id,target.id);removePairs(target,false);markEscapes(r);checkGameOver(r);}).catch(()=>{});await Core.leaveRoom(roomId).catch(()=>{});location.href='index.html';});
-  window.addEventListener('pagehide',()=>{clearInterval(tickTimer);clearTimeout(botTimer);});
+  window.addEventListener('pagehide',()=>{clearInterval(tickTimer);clearTimeout(botTimer);botTimer=null;});
 })();
 </script>
 </body>
