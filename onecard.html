@@ -220,6 +220,63 @@ button.oc-card.playable { border-color: #3971e7; box-shadow: 0 0 0 2px rgba(57,1
   font-weight: 700;
 }
 .oc-suit-chip.red { color: #d23b42; }
+.oc-final-card {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  margin: 16px 0 18px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #f7f9fc;
+}
+.oc-final-card .oc-card {
+  width: 82px;
+  height: 114px;
+  box-shadow: 0 6px 14px rgba(29,42,67,.14);
+}
+.oc-final-card .oc-card-corner {
+  top: 6px;
+  left: 7px;
+  font-size: 14px;
+}
+.oc-final-card .oc-card-corner.bottom {
+  top: auto;
+  left: auto;
+  right: 7px;
+  bottom: 6px;
+}
+.oc-final-card .oc-card-suit { font-size: 12px; }
+.oc-final-card .oc-card-center { font-size: 38px; }
+.oc-final-card .oc-card-center.joker { font-size: 12px; }
+.oc-final-card .oc-card-effect {
+  bottom: 13px;
+  padding: 2px 4px;
+  font-size: 7px;
+}
+.oc-final-card-copy {
+  min-width: 0;
+  text-align: left;
+}
+.oc-final-card-copy span {
+  display: block;
+  color: #6c778a;
+  font-size: 11px;
+}
+.oc-final-card-copy b {
+  display: block;
+  margin-top: 4px;
+  color: #202633;
+  font-size: 15px;
+}
+.oc-final-card-copy small {
+  display: block;
+  margin-top: 5px;
+  color: #566278;
+  line-height: 1.4;
+}
+
 .oc-attack {
   margin-top: 9px;
   padding: 6px 9px;
@@ -338,6 +395,24 @@ button.oc-card.playable { border-color: #3971e7; box-shadow: 0 0 0 2px rgba(57,1
 .result-rank { width: 30px; font-family: var(--f-mono); font-weight: 700; }
 .result-row .result-name { flex: 1; font-weight: 700; }
 .result-row small { color: #6c7789; }
+
+@media (max-width: 860px) {
+  body.game-onecard .oc-final-card {
+    gap: 11px;
+    margin: 12px 0 14px;
+    padding: 10px;
+  }
+  body.game-onecard .oc-final-card .oc-card {
+    width: 66px;
+    height: 92px;
+  }
+  body.game-onecard .oc-final-card-copy b {
+    font-size: 13px;
+  }
+  body.game-onecard .oc-final-card-copy small {
+    font-size: 10px;
+  }
+}
 
 @media (max-width: 860px) {
   .onecard-stage { gap: 8px; padding: 0 0 8px; }
@@ -992,6 +1067,9 @@ body.game-onecard #chatPane.hidden {
         r.shuffleCount = 0;
         r.startedAt = Core.now();
         r.lastAction = '게임 시작';
+        r.lastPlayedCard = null;
+        r.lastPlayedBy = null;
+        r.lastPlayedSuit = null;
         started = true;
       });
       // 원카드는 시작 시 세션/활동 기록 문구를 표시하지 않는다.
@@ -1041,6 +1119,9 @@ body.game-onecard #chatPane.hidden {
         const effect = cardEffectLabel(code);
         logText = `<b>${p.name}</b> 님이 ${cardAria(code)} 카드를 냈습니다${chosenSuit ? ` · ${SUIT_META[chosenSuit].name} 지정` : ''}`;
         r.lastAction = `${p.name}: ${cardAria(code)}`;
+        r.lastPlayedCard = code;
+        r.lastPlayedBy = p.id;
+        r.lastPlayedSuit = chosenSuit || null;
 
         if (p.hand.length === 0) {
           r.winner = p.id;
@@ -1179,6 +1260,9 @@ body.game-onecard #chatPane.hidden {
         else r.currentSuit = c.suit;
         logText = `<b>${bp.name}</b> AI가 ${cardAria(code)} 카드를 냈습니다`;
         r.lastAction = `${bp.name}: ${cardAria(code)}`;
+        r.lastPlayedCard = code;
+        r.lastPlayedBy = bp.id;
+        r.lastPlayedSuit = decision.suit || null;
 
         if (bp.hand.length === 0) {
           r.winner = bp.id;
@@ -1370,7 +1454,6 @@ body.game-onecard #chatPane.hidden {
     const top = topCard(r);
     const suit = SUIT_META[r.currentSuit] || SUIT_META.S;
     const opponents = ps.filter((p) => p.id !== Core.me.id);
-
     Core.actionAlert(roomId, myTurn ? `turn:${cur.id}:${r.attack || 0}` : '',
       (r.attack || 0) > 0 ? `공격 ${r.attack}장을 막거나 받아야 합니다.` : '내 카드 차례입니다.');
 
@@ -1520,12 +1603,25 @@ body.game-onecard #chatPane.hidden {
       return (a.hand || []).length - (b.hand || []).length;
     });
     const winner = r.players?.[r.winner];
+    const finalCard = r.lastPlayedCard || topCard(r);
+    const finalPlayer = r.lastPlayedBy ? r.players?.[r.lastPlayedBy] : winner;
+    const finalSuit = r.lastPlayedSuit && SUIT_META[r.lastPlayedSuit]
+      ? SUIT_META[r.lastPlayedSuit].name
+      : null;
 
     board.innerHTML = `
       <div class="lobby">
         <div class="eyebrow">게임 종료</div>
         <h2>${winner ? `${Core.esc(winner.name)} 님 승리` : '결과'}</h2>
         <p class="lobby-description">손에 든 카드를 가장 먼저 모두 없앴습니다.</p>
+        ${finalCard ? `<div class="oc-final-card">
+          ${cardHtml(finalCard)}
+          <div class="oc-final-card-copy">
+            <span>게임을 끝낸 마지막 카드</span>
+            <b>${finalPlayer ? Core.esc(finalPlayer.name) + ' 님' : '승자'}</b>
+            <small>${Core.esc(cardAria(finalCard))}${finalSuit ? ` · ${Core.esc(finalSuit)} 지정` : ''}</small>
+          </div>
+        </div>` : ''}
         <div class="result-podium">
           ${ps.map((p, i) => `<div class="result-row ${p.id === r.winner ? 'win' : ''}">
             <span class="result-rank">${i + 1}</span>
@@ -1553,7 +1649,7 @@ body.game-onecard #chatPane.hidden {
           p.hand = [];
           p.ready = !!p.bot;
         });
-        ['deck','discard','currentSuit','attack','attackLevel','direction','turn','winner','oneCardPlayer','oneCardDeclared','shuffleCount','lastAction','startedAt']
+        ['deck','discard','currentSuit','attack','attackLevel','direction','turn','winner','oneCardPlayer','oneCardDeclared','shuffleCount','lastAction','lastPlayedCard','lastPlayedBy','lastPlayedSuit','startedAt']
           .forEach((key) => delete rr[key]);
       });
     });
