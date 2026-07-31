@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>다빈치 코드 — BOARD 24</title>
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<meta name="theme-color" content="#172033">
+<link rel="stylesheet" href="assets/app.css">
+<style>
+body.game-davinci { --code-accent:#315fcb; --code-soft:#edf3ff; }
+.code-stage { width:min(1560px,100%); margin:0 auto; padding:12px 0 30px; display:flex; flex-direction:column; gap:14px; }
+.code-status { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:9px; }
+.code-status>div { min-width:0; padding:12px 14px; border:1px solid var(--line); border-radius:11px; background:#fff; text-align:center; }
+.code-status span { display:block; color:#748096; font:10px var(--f-mono); }
+.code-status b { display:block; overflow:hidden; margin-top:5px; color:#202938; font-size:16px; text-overflow:ellipsis; white-space:nowrap; }
+.code-layout { display:grid; grid-template-columns:minmax(0,1fr) 330px; gap:14px; align-items:start; }
+.code-main { min-width:0; padding:18px; border:1px solid #dce2ec; border-radius:15px; background:linear-gradient(180deg,#f9fbff,#eef2f8); }
+.code-turn { text-align:center; }
+.code-turn h2 { margin:0; color:#202938; font-size:25px; }
+.code-turn p { margin:7px 0 0; color:#6e798c; font-size:13px; }
+.code-players { display:grid; gap:13px; margin-top:18px; }
+.code-row { padding:14px; border:1px solid #dbe2ed; border-radius:13px; background:#fff; }
+.code-row.current { border-color:var(--code-accent); box-shadow:0 0 0 2px rgba(49,95,203,.1); }
+.code-row.eliminated { opacity:.55; background:#f3f5f8; }
+.code-row-head { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:11px; }
+.code-row-name { display:flex; align-items:center; gap:9px; min-width:0; }
+.code-row-name b { overflow:hidden; color:#253044; text-overflow:ellipsis; white-space:nowrap; }
+.code-row-head small { color:#7a8598; font:10px var(--f-mono); }
+.code-badges { display:flex; flex-wrap:wrap; justify-content:flex-end; gap:5px; }
+.code-badge { padding:3px 7px; border-radius:999px; background:#edf1f6; color:#536074; font:9px var(--f-mono); }
+.code-badge.ai { background:#eaf2ff; color:#2f5cae; }
+.code-badge.out { background:#fff0f1; color:#a83340; }
+.code-tiles { display:flex; flex-wrap:wrap; align-items:flex-end; justify-content:center; gap:8px; min-height:118px; }
+.code-tile { position:relative; width:70px; height:104px; flex:0 0 auto; border:1px solid #b9c4d3; border-radius:8px; box-shadow:0 6px 14px rgba(24,37,63,.15); user-select:none; transform:none; transition:border-color .13s ease,box-shadow .13s ease,filter .13s ease; }
+button.code-tile { padding:0; cursor:pointer; }
+.code-tile.black { color:#fff; background:linear-gradient(145deg,#111827,#27344b); border-color:#0d1421; }
+.code-tile.white { color:#182033; background:linear-gradient(145deg,#fff,#edf1f6); }
+.code-tile.hidden.black::before,.code-tile.hidden.white::before { content:'?'; position:absolute; inset:0; display:grid; place-items:center; font:700 34px var(--f-display); opacity:.82; }
+.code-tile.hidden.black::after,.code-tile.hidden.white::after { content:''; position:absolute; left:11px; right:11px; bottom:12px; height:2px; background:currentColor; opacity:.35; }
+.code-tile .num { position:absolute; inset:0; display:grid; place-items:center; font:700 36px var(--f-display); }
+.code-tile .color-label { position:absolute; left:0; right:0; bottom:7px; text-align:center; font:8px var(--f-mono); letter-spacing:.08em; opacity:.62; }
+.code-tile.revealed { outline:3px solid rgba(219,65,81,.26); }
+.code-tile.selected { border-color:#4f79dc; box-shadow:0 0 0 4px rgba(49,95,203,.18),0 10px 22px rgba(24,37,63,.2); filter:brightness(1.04); }
+button.code-tile:not(:disabled):hover,button.code-tile:not(:disabled):focus-visible { border-color:#6089e3; box-shadow:0 0 0 3px rgba(49,95,203,.14),0 9px 20px rgba(24,37,63,.2); }
+button.code-tile:disabled { cursor:default; }
+.code-tile.just-revealed { animation:codeFlip .72s ease both; }
+@keyframes codeFlip { 0%{transform:rotateY(90deg) scale(.92);opacity:.35} 100%{transform:rotateY(0) scale(1);opacity:1} }
+.code-guess-panel { margin-top:15px; padding:14px; border:1px solid #ccd9f3; border-radius:12px; background:#f4f7ff; }
+.code-guess-panel h3 { margin:0; color:#274d9f; font-size:15px; }
+.code-guess-panel p { margin:5px 0 11px; color:#6b7890; font-size:12px; }
+.code-numbers { display:grid; grid-template-columns:repeat(12,minmax(36px,1fr)); gap:6px; }
+.code-number { min-height:42px; border:1px solid #cbd5e5; border-radius:8px; background:#fff; color:#263148; font:700 15px var(--f-mono); cursor:pointer; }
+.code-number:hover,.code-number:focus-visible { border-color:#4f79dc; background:#edf3ff; }
+.code-number:disabled { opacity:.32; cursor:default; text-decoration:line-through; }
+.code-decision { display:flex; justify-content:center; flex-wrap:wrap; gap:9px; margin-top:15px; padding:14px; border:1px solid #cfe1d6; border-radius:12px; background:#f1fbf4; }
+.code-decision strong { width:100%; text-align:center; color:#22603c; }
+.code-draw-area { display:flex; justify-content:center; margin-top:15px; }
+.code-draw-btn { min-width:210px; min-height:46px; }
+.code-side { display:flex; flex-direction:column; gap:11px; }
+.code-side-card { padding:15px; border:1px solid var(--line); border-radius:13px; background:#fff; }
+.code-side-card h3 { margin:0 0 10px; color:#253044; font-size:14px; }
+.code-side-card p { margin:0; color:#68758a; font-size:12px; line-height:1.65; }
+.code-my-tiles { display:flex; flex-wrap:wrap; justify-content:center; gap:7px; }
+.code-pending { display:grid; place-items:center; min-height:138px; border:1px dashed #becbe1; border-radius:11px; background:#f7f9fd; text-align:center; }
+.code-pending .code-tile { animation:codeDrawIn .55s cubic-bezier(.2,.8,.2,1) both; }
+@keyframes codeDrawIn { from{opacity:0;transform:translateY(-24px) scale(.82)} to{opacity:1;transform:translateY(0) scale(1)} }
+.code-wrong-list { margin-top:5px; color:#a3424c; font:10px var(--f-mono); }
+.code-result { width:min(720px,100%); margin:28px auto; padding:26px; border:1px solid var(--line); border-radius:16px; background:#fff; text-align:center; }
+.code-result h2 { margin:0; color:#202938; font:42px var(--f-display); }
+.code-winner { margin:16px 0; padding:16px; border-radius:12px; background:#edf7f1; color:#24633f; }
+.code-rank { display:grid; gap:7px; margin:16px 0; text-align:left; }
+.code-rank-row { display:flex; justify-content:space-between; gap:10px; padding:10px 12px; border:1px solid #e0e6ef; border-radius:9px; }
+.code-rank-row.win { border-color:#b8dfc6; background:#f2fbf5; }
+.lobby { max-width:680px; margin:30px auto; }
+.lobby-players { display:flex; flex-direction:column; gap:7px; margin:22px 0; }
+.lobby-row { display:flex; align-items:center; gap:10px; padding:11px 14px; border:1px solid var(--line); border-radius:var(--radius); background:var(--ink-2); }
+.lobby-row .badge { font:10.5px var(--f-mono); padding:2px 6px; border-radius:2px; background:var(--ink-3); color:var(--cream-dim); }
+.lobby-row .badge.ready { background:var(--green); color:#fff; }
+.lobby-row .badge.host { background:var(--brass); color:var(--ink); }
+.ai-assist-toggle { position:relative; font-weight:700; }
+.ai-assist-toggle .ai-assist-mark { display:inline-flex; align-items:center; justify-content:center; font-size:9px; line-height:1; }
+.ai-assist-toggle.is-on { border-color:#4f8f6b!important; background:#eaf7ef!important; color:#23613e!important; }
+.ai-assist-toggle.is-on::after { content:''; position:absolute; top:4px; right:4px; width:6px; height:6px; border-radius:50%; background:#2f9a59; }
+@media(max-width:1100px){.code-layout{grid-template-columns:1fr}.code-side{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:860px){
+ body.game-davinci .game-shell{grid-template-rows:auto minmax(0,1fr) clamp(150px,24dvh,190px)!important}
+ body.game-davinci .side{min-height:150px!important;max-height:190px!important}
+ body.game-davinci #chatPane{min-height:0!important;padding:0 6px 4px!important}
+ body.game-davinci .chat-input{padding:4px!important}
+ .code-stage{gap:9px;padding-bottom:12px}.code-status{grid-template-columns:repeat(2,minmax(0,1fr))}.code-main{padding:10px}.code-turn h2{font-size:19px}.code-row{padding:9px}.code-row-head{align-items:flex-start}.code-tiles{flex-wrap:nowrap;justify-content:flex-start;overflow-x:auto;padding:8px 3px 13px;min-height:94px}.code-tile{width:60px;height:88px}.code-tile .num{font-size:30px}.code-numbers{grid-template-columns:repeat(6,minmax(40px,1fr))}.code-side{display:block}.code-side-card+.code-side-card{margin-top:7px}.code-my-tiles{flex-wrap:nowrap;justify-content:flex-start;overflow-x:auto;padding-bottom:9px}.code-result{margin:12px auto;padding:18px}.code-result h2{font-size:32px}
+}
+</style>
+</head>
+<body class="is-game game-davinci">
+<div class="conn-banner"></div>
+<div class="game-shell">
+  <aside class="game-office-nav" aria-label="업무 메뉴">
+    <div class="game-office-logo"><span>B24</span> BOARD 24</div>
+    <div class="game-office-account"><b>통합 운영 워크스페이스</b><small>실시간 업무 처리</small></div>
+    <nav>
+      <div><span>⌂</span> 홈</div>
+      <div><span>▣</span> 진행 업무</div>
+      <div class="active"><span>#</span> 암호 해독 업무</div>
+      <div><span>◉</span> 실시간 현황</div>
+    </nav>
+    <small class="game-office-foot">INTERNAL OPERATIONS</small>
+  </aside>
+
+  <header class="game-topbar">
+    <a href="index.html" class="btn btn-ghost btn-sm header-action" title="뒤로가기" aria-label="뒤로가기"><span class="header-icon">←</span><span class="header-label">뒤로</span></a>
+    <span class="gt-brand-mark" aria-hidden="true">B24</span>
+    <div><div class="gt-title">다빈치 코드</div><div class="gt-room" id="roomLabel">—</div></div>
+    <div class="spacer" style="flex:1"></div>
+    <button class="btn btn-ghost btn-sm header-action" data-alert-enable title="알림 켜기" aria-label="알림 켜기"><svg class="header-icon notification-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M18 8.5a6 6 0 0 0-12 0c0 7-3 7-3 8.5h18c0-1.5-3-1.5-3-8.5Z"/><path d="M9.5 20h5"/></svg><span class="header-label">알림</span></button>
+    <button class="btn btn-ghost btn-sm header-action ai-assist-toggle" id="aiAssistToggle" type="button" title="AI 대리 켜기" aria-label="AI 대리 켜기" aria-pressed="false"><span class="header-icon ai-assist-mark">AI</span><span class="header-label">AI 전환</span></button>
+    <button class="btn btn-ghost btn-sm header-action" data-leave title="나가기" aria-label="나가기"><span class="header-icon">↗</span><span class="header-label">나가기</span></button>
+  </header>
+
+  <main class="board" id="board"><div class="empty-state">불러오는 중…</div></main>
+
+  <aside class="side" aria-label="채팅">
+    <div class="side-pane" id="chatPane"></div>
+    <div class="side-pane hidden" id="logPane" aria-hidden="true"></div>
+    <div class="chat-input"><input type="text" id="chatInput" maxlength="200" placeholder="메시지 입력" autocomplete="off"><button class="btn btn-sm" id="chatSend">전송</button></div>
+  </aside>
+</div>
+
+<script src="assets/firebase-config.js"></script>
+<script src="assets/firebase.js"></script>
+<script src="assets/core.js?v=davinci-code-20260731"></script>
+<script>
+(async function(){
+  'use strict';
+  if(window.T9_FIREBASE&&window.T9_FIREBASE._pending){try{await window.T9_FIREBASE._pending;}catch(_){}}
+  await Core.init();
+  if(Core.GAMES&&!Core.GAMES.davinci)Core.GAMES.davinci={name:'다빈치 코드',file:'davinci.html',min:2,max:4};
+
+  const params=new URLSearchParams(location.search);
+  const roomId=params.get('room');
+  const spectate=params.get('spectate')==='1';
+  const board=document.getElementById('board');
+  const aiBtn=document.getElementById('aiAssistToggle');
+  if(!roomId){board.innerHTML='<div class="empty-state">자료실 코드가 없습니다.<br><a class="btn" href="index.html">자료실 목록</a></div>';return;}
+  document.getElementById('roomLabel').textContent='자료실 코드 '+roomId;
+
+  const seatedList=r=>Object.values(r?.players||{}).sort((a,b)=>(a.seat||0)-(b.seat||0));
+  const isAuto=p=>!!(p&&(p.bot||p.aiAssist));
+  const isHost=r=>r?.host===Core.me?.id;
+  const mod=(n,m)=>((n%m)+m)%m;
+  const tileKey=t=>Number(t.num)*2+(t.color==='black'?0:1);
+  const sortTiles=tiles=>(tiles||[]).sort((a,b)=>tileKey(a)-tileKey(b));
+  const hiddenCount=p=>(p?.codeTiles||[]).filter(t=>!t.revealed).length;
+  const activePlayers=r=>seatedList(r).filter(p=>!p.eliminated&&hiddenCount(p)>0);
+  const currentPlayer=r=>{const ps=seatedList(r);return ps.length?ps[mod(Number(r.turn)||0,ps.length)]:null;};
+  let room=null,botTimer=null,actionBusy=false,selected={playerId:null,tileId:null};
+
+  function nextActiveIndex(r,from){
+    const ps=seatedList(r);if(!ps.length)return 0;
+    let idx=mod(from,ps.length);
+    for(let i=0;i<ps.length;i++){idx=mod(idx+1,ps.length);if(!ps[idx].eliminated&&hiddenCount(ps[idx])>0)return idx;}
+    return idx;
+  }
+  function buildPool(seed){
+    const tiles=[];
+    for(const color of ['black','white'])for(let num=0;num<=11;num++)tiles.push({id:`${color[0]}${num}_${Core.uid(4)}`,color,num,revealed:false});
+    return Core.shuffle(tiles,Core.mulberry32(seed));
+  }
+  function seededIndex(r,length){r.randomStep=(r.randomStep||0)+1;const rng=Core.mulberry32(((r.seed||1)+(r.randomStep*2654435761))>>>0);return Math.floor(rng()*Math.max(1,length));}
+  function insertTile(player,tile,revealed){
+    const placed={...tile,revealed:!!revealed};
+    player.codeTiles=player.codeTiles||[];
+    player.codeTiles.push(placed);sortTiles(player.codeTiles);
+    return placed;
+  }
+  function markEliminated(r){
+    r.eliminatedOrder=Array.isArray(r.eliminatedOrder)?r.eliminatedOrder:[];
+    seatedList(r).forEach(p=>{
+      if(!p.eliminated&&(p.codeTiles||[]).length&&hiddenCount(p)===0){p.eliminated=true;p.eliminatedAt=Core.now();r.eliminatedOrder.push(p.id);}
+    });
+  }
+  function checkOver(r){
+    markEliminated(r);
+    const active=activePlayers(r);
+    if(active.length<=1){
+      if(r.pendingDraw&&r.players[r.pendingDraw.ownerId])insertTile(r.players[r.pendingDraw.ownerId],r.pendingDraw.tile,false);
+      r.pendingDraw=null;r.phase='over';r.winner=active[0]?.id||null;r.finishedAt=Core.now();r.step=null;r.awaitDecision=false;return true;
+    }
+    return false;
+  }
+  function beginTurn(r,index){
+    const ps=seatedList(r);if(!ps.length)return;
+    let idx=mod(index,ps.length);
+    if(ps[idx].eliminated||hiddenCount(ps[idx])===0)idx=nextActiveIndex(r,idx-1);
+    r.turn=idx;r.pendingDraw=null;r.guessStreak=0;r.awaitDecision=false;r.step=(r.pool||[]).length?'draw':'guess';r.turnStartedAt=Core.now();
+  }
+  function finishTurn(r){if(checkOver(r))return;beginTurn(r,nextActiveIndex(r,Number(r.turn)||0));}
+  function tileHtml(tile,opts={}){
+    const visible=opts.visible||tile.revealed;
+    const classes=['code-tile',tile.color,visible?'revealed':'hidden'];
+    if(opts.selected)classes.push('selected');
+    const recent=room?.lastReveal&&room.lastReveal.tileId===tile.id&&Core.now()-(room.lastReveal.at||0)<1600;
+    if(recent)classes.push('just-revealed');
+    const inner=visible?`<span class="num">${tile.num}</span><span class="color-label">${tile.color==='black'?'BLACK':'WHITE'}</span>`:'';
+    if(opts.button)return`<button class="${classes.join(' ')}" data-target-player="${opts.playerId}" data-target-tile="${tile.id}" ${opts.disabled?'disabled':''} aria-label="${visible?tile.num+'번 공개 타일':(tile.color==='black'?'검정':'흰색')+' 숨은 타일'}">${inner}</button>`;
+    return`<div class="${classes.join(' ')}">${inner}</div>`;
+  }
+  function publicTileHtml(tile,playerId,canSelect){
+    const chosen=selected.playerId===playerId&&selected.tileId===tile.id;
+    return tileHtml(tile,{button:true,playerId,selected:chosen,disabled:tile.revealed||!canSelect});
+  }
+  function paintAi(r){
+    const me=r?.players?.[Core.me.id],on=!!(me?.aiAssist&&!me.bot);
+    aiBtn.classList.toggle('is-on',on);aiBtn.setAttribute('aria-pressed',String(on));aiBtn.disabled=!me||me.bot||r.phase==='over';
+    aiBtn.querySelector('.header-label').textContent=on?'AI ON':'AI 전환';aiBtn.title=on?'AI 대리 끄기':'AI 대리 켜기';
+  }
+  aiBtn.addEventListener('click',async()=>{
+    const p=room?.players?.[Core.me.id];if(!p||p.bot)return;
+    const next=!p.aiAssist;
+    await Core.updateRoom(roomId,r=>{const me=r.players?.[Core.me.id];if(!me||me.bot)return false;me.aiAssist=next;me.aiAssistAt=next?Core.now():null;if(next&&r.phase==='lobby')me.ready=true;});
+    Core.toast(next?'AI 대리를 켰습니다.':'AI 대리를 껐습니다.');
+  });
+
+  if(spectate){
+    const status=await Core.adminStatus().catch(()=>({admin:false}));
+    if(!status.admin){board.innerHTML='<div class="empty-state">관리자 로그인이 필요합니다.<br><a class="btn" href="index.html">자료실 목록</a></div>';return;}
+    document.querySelector('[data-leave]')?.remove();
+    Core.onRoom(roomId,r=>{
+      if(!r){board.innerHTML='<div class="empty-state">자료실이 삭제되었습니다.</div>';return;}
+      const ps=seatedList(r),cur=currentPlayer(r);
+      board.innerHTML=`<div class="code-result"><h2>관리자 관전</h2><p>${Core.esc(r.title||'다빈치 코드')}</p><div class="code-rank">${ps.map(p=>`<div class="code-rank-row"><span><b>${Core.esc(p.name)}</b>${p.id===cur?.id?' · 현재 차례':''}</span><span>${(p.codeTiles||[]).map(t=>`${t.color==='black'?'B':'W'}${t.num}${t.revealed?'✓':''}`).join(' ')||'대기'}</span></div>`).join('')}</div><a class="btn btn-primary" href="index.html">자료실 목록</a></div>`;
+    });return;
+  }
+
+  if(!Core.requireLogin())return;
+  const existing=await Core.store.get('rooms/'+roomId);
+  if(!existing||!existing.players||!existing.players[Core.me.id]){board.innerHTML='<div class="empty-state">참가 정보가 없습니다.<br><a class="btn" href="index.html">자료실 목록</a></div>';return;}
+  Core.mountSide(roomId,{mobileDefaultTab:'chat'});Core.startHeartbeat(roomId);
+
+  async function addBot(){
+    await Core.updateRoom(roomId,r=>{const ps=seatedList(r);if(ps.length>=Math.min(4,r.maxSeats||4))return false;const id='bot_'+Core.uid(6);r.players[id]={id,bot:true,name:Core.BOT_TITLES[ps.filter(p=>p.bot).length%Core.BOT_TITLES.length],dept:'자동',seat:ps.length,ready:true,online:true,beat:Core.now()};});
+  }
+  async function startGame(){
+    if(actionBusy)return;actionBusy=true;let started=false;
+    try{await Core.updateRoom(roomId,r=>{
+      const ps=seatedList(r);if(ps.length<2||ps.length>4||ps.some(p=>!p.ready))return false;
+      const pool=buildPool(r.seed||Math.floor(Math.random()*2147483647));const count=ps.length===4?3:4;
+      ps.forEach(p=>{p.codeTiles=[];p.eliminated=false;p.ready=false;delete p.eliminatedAt;for(let i=0;i<count;i++)p.codeTiles.push(pool.pop());sortTiles(p.codeTiles);});
+      r.pool=pool;r.phase='playing';r.randomStep=0;r.wrongGuesses={};r.lastReveal=null;r.eliminatedOrder=[];r.lastAction='암호 타일 배정이 완료되었습니다.';r.startedAt=Core.now();
+      beginTurn(r,seededIndex(r,ps.length));started=true;
+    });if(started)Core.sys(roomId,'다빈치 코드 암호 해독이 시작되었습니다.');}finally{actionBusy=false;}
+  }
+  async function drawTile(){
+    if(actionBusy)return;actionBusy=true;
+    try{await Core.updateRoom(roomId,r=>{const cur=currentPlayer(r);if(r.phase!=='playing'||r.step!=='draw'||cur?.id!==Core.me.id||!(r.pool||[]).length)return false;const tile=r.pool.pop();r.pendingDraw={ownerId:cur.id,tile};r.step='guess';r.lastAction=`${cur.name}님이 타일 1개를 확인했습니다.`;});}finally{actionBusy=false;}
+  }
+  async function submitGuess(number,actorId=Core.me.id,targetId=selected.playerId,tileId=selected.tileId){
+    if(actionBusy||targetId==null||tileId==null)return;actionBusy=true;
+    try{await Core.updateRoom(roomId,r=>{
+      if(r.phase!=='playing'||r.step!=='guess')return false;
+      const actor=currentPlayer(r),target=r.players?.[targetId];if(!actor||actor.id!==actorId||!target||target.eliminated||target.id===actor.id)return false;
+      const tile=(target.codeTiles||[]).find(t=>t.id===tileId);if(!tile||tile.revealed)return false;
+      r.wrongGuesses=r.wrongGuesses||{};r.wrongGuesses[tile.id]=Array.isArray(r.wrongGuesses[tile.id])?r.wrongGuesses[tile.id]:[];
+      if(Number(tile.num)===Number(number)){
+        tile.revealed=true;r.guessStreak=(r.guessStreak||0)+1;r.lastReveal={tileId:tile.id,targetId:target.id,number:Number(number),correct:true,at:Core.now()};r.lastAction=`${actor.name}님이 ${target.name}님의 ${number}을 맞혔습니다.`;markEliminated(r);
+        if(checkOver(r))return;
+        r.step='decision';r.awaitDecision=true;
+      }else{
+        if(!r.wrongGuesses[tile.id].includes(Number(number)))r.wrongGuesses[tile.id].push(Number(number));
+        r.lastReveal={tileId:tile.id,targetId:target.id,number:Number(number),correct:false,at:Core.now()};
+        if(r.pendingDraw&&r.pendingDraw.ownerId===actor.id){const shown=insertTile(actor,r.pendingDraw.tile,true);r.lastReveal.penaltyTileId=shown.id;r.pendingDraw=null;r.lastAction=`${actor.name}님의 추리가 빗나가 뽑은 타일이 공개되었습니다.`;}else r.lastAction=`${actor.name}님의 추리가 빗나갔습니다.`;
+        finishTurn(r);
+      }
+    });selected={playerId:null,tileId:null};}finally{actionBusy=false;}
+  }
+  async function continueGuess(actorId=Core.me.id){
+    await Core.updateRoom(roomId,r=>{const cur=currentPlayer(r);if(r.phase!=='playing'||r.step!=='decision'||cur?.id!==actorId)return false;r.step='guess';r.awaitDecision=false;r.lastAction=`${cur.name}님이 추리를 계속합니다.`;});
+  }
+  async function stopGuess(actorId=Core.me.id){
+    await Core.updateRoom(roomId,r=>{const cur=currentPlayer(r);if(r.phase!=='playing'||r.step!=='decision'||cur?.id!==actorId)return false;if(r.pendingDraw&&r.pendingDraw.ownerId===cur.id){insertTile(cur,r.pendingDraw.tile,false);r.pendingDraw=null;}r.lastAction=`${cur.name}님이 추리를 멈췄습니다.`;finishTurn(r);});
+  }
+
+  function knownPairs(r,observerId){
+    const set=new Set();
+    seatedList(r).forEach(p=>(p.codeTiles||[]).forEach(t=>{if(p.id===observerId||t.revealed)set.add(t.color+':'+t.num);}));
+    if(r.pendingDraw?.ownerId===observerId)set.add(r.pendingDraw.tile.color+':'+r.pendingDraw.tile.num);
+    return set;
+  }
+  function candidateNumbers(r,observerId,target,tile){
+    const known=knownPairs(r,observerId),wrong=new Set((r.wrongGuesses?.[tile.id]||[]).map(Number));
+    const idx=(target.codeTiles||[]).findIndex(t=>t.id===tile.id);let low=-1,high=24;
+    for(let i=idx-1;i>=0;i--){const t=target.codeTiles[i];if(t.revealed){low=tileKey(t);break;}}
+    for(let i=idx+1;i<target.codeTiles.length;i++){const t=target.codeTiles[i];if(t.revealed){high=tileKey(t);break;}}
+    const out=[];
+    for(let n=0;n<=11;n++){
+      const key=n*2+(tile.color==='black'?0:1);
+      if(key<=low||key>=high||wrong.has(n)||known.has(tile.color+':'+n))continue;
+      out.push(n);
+    }
+    return out.length?out:Array.from({length:12},(_,i)=>i).filter(n=>!wrong.has(n));
+  }
+  function chooseAiGuess(r,actor){
+    const targets=activePlayers(r).filter(p=>p.id!==actor.id);let best=null;
+    targets.forEach(target=>(target.codeTiles||[]).filter(t=>!t.revealed).forEach(tile=>{
+      const candidates=candidateNumbers(r,actor.id,target,tile);
+      const score=candidates.length+(seededIndex(r,100)/1000);
+      if(!best||score<best.score)best={target,tile,candidates,score};
+    }));
+    if(!best)return null;
+    const number=best.candidates[seededIndex(r,best.candidates.length)];
+    return{targetId:best.target.id,tileId:best.tile.id,number,candidateCount:best.candidates.length};
+  }
+  function scheduleAuto(delay,fn){if(botTimer)return;botTimer=setTimeout(async()=>{botTimer=null;try{await fn();}catch(e){console.error(e);}},delay);}
+  function maybeAuto(){
+    if(!room||room.phase!=='playing'||!isHost(room)||botTimer)return;
+    const cur=currentPlayer(room);if(!isAuto(cur))return;
+    if(room.step==='draw'){
+      scheduleAuto(700,()=>Core.updateRoom(roomId,r=>{const p=currentPlayer(r);if(r.phase!=='playing'||r.step!=='draw'||!isAuto(p)||(r.pool||[]).length===0)return false;r.pendingDraw={ownerId:p.id,tile:r.pool.pop()};r.step='guess';r.lastAction=`${p.name}님이 타일 1개를 확인했습니다.`;}));
+    }else if(room.step==='guess'){
+      const choice=chooseAiGuess(room,cur);if(!choice)return;
+      scheduleAuto(1050,()=>{const latest=room,nowCur=latest&&currentPlayer(latest);if(!latest||latest.phase!=='playing'||latest.step!=='guess'||nowCur?.id!==cur.id||!isAuto(nowCur))return;return submitGuess(choice.number,cur.id,choice.targetId,choice.tileId);});
+    }else if(room.step==='decision'){
+      const next=chooseAiGuess(room,cur);const keep=!!next&&next.candidateCount<=2&&(room.guessStreak||0)<3;
+      scheduleAuto(850,()=>{const latest=room,nowCur=latest&&currentPlayer(latest);if(!latest||latest.phase!=='playing'||latest.step!=='decision'||nowCur?.id!==cur.id||!isAuto(nowCur))return;return keep?continueGuess(cur.id):stopGuess(cur.id);});
+    }
+  }
+
+  function renderLobby(r){
+    const ps=seatedList(r),ready=ps.filter(p=>p.ready).length,can=isHost(r)&&ps.length>=2&&ps.length<=4&&ready===ps.length;
+    board.innerHTML=`<div class="lobby"><div class="eyebrow">CODE BREAKING</div><h2>다빈치 코드</h2><p class="lede">흑·백 숫자 타일을 낮은 순서로 정렬하고 상대의 숨은 암호를 추리하세요.</p><div class="lobby-players">${ps.map(p=>`<div class="lobby-row"><div class="avatar">${Core.esc(Core.initials(p.name))}</div><div style="flex:1"><b>${Core.esc(p.name)}</b><div class="muted">${Core.esc(p.dept||'—')}</div></div>${p.id===r.host?'<span class="badge host">개설자</span>':''}${p.ready?'<span class="badge ready">준비</span>':'<span class="badge">대기</span>'}${isHost(r)&&p.id!==r.host?`<button class="lobby-remove" data-kick="${p.id}" title="강퇴">×</button>`:''}</div>`).join('')}</div><div class="lobby-actions"><button class="btn ${r.players[Core.me.id]?.ready?'':'btn-primary'}" id="btnReady">${r.players[Core.me.id]?.ready?'준비 취소':'준비 완료'}</button><button class="btn btn-ghost" id="btnCopy">🔗 초대 링크 복사</button>${isHost(r)?`<button class="btn btn-bot" id="btnBot" ${ps.length>=Math.min(4,r.maxSeats||4)?'disabled':''}>봇 추가 · 유료</button><button class="btn btn-primary" id="btnStart" ${can?'':'disabled'}>게임 시작 ${ps.length<2?'(2명 필요)':`(${ready}/${ps.length} 준비)`}</button>`:''}</div></div>`;
+    document.getElementById('btnReady')?.addEventListener('click',()=>Core.updateRoom(roomId,rr=>{const p=rr.players[Core.me.id];if(p)p.ready=!p.ready;}));
+    document.getElementById('btnCopy')?.addEventListener('click',()=>Core.copyInviteLink(roomId));
+    document.getElementById('btnBot')?.addEventListener('click',async()=>{if(await Core.requestBotAccess())addBot();});
+    document.getElementById('btnStart')?.addEventListener('click',startGame);
+    board.querySelectorAll('[data-kick]').forEach(b=>b.addEventListener('click',()=>{if(!confirm('이 참가자를 강퇴하시겠습니까?'))return;Core.updateRoom(roomId,rr=>{if(rr.host!==Core.me.id)return false;delete rr.players[b.dataset.kick];seatedList(rr).forEach((p,i)=>p.seat=i);});}));
+  }
+  function renderGame(r){
+    const ps=seatedList(r),cur=currentPlayer(r),me=r.players[Core.me.id],myTurn=cur?.id===Core.me.id&&!me?.eliminated,canPick=myTurn&&r.step==='guess',targetTile=selected.tileId?ps.flatMap(p=>(p.codeTiles||[]).map(t=>({p,t}))).find(x=>x.t.id===selected.tileId):null;
+    const hiddenTotal=ps.reduce((n,p)=>n+hiddenCount(p),0),pendingMine=r.pendingDraw?.ownerId===Core.me.id?r.pendingDraw.tile:null;
+    const stepTitle=r.step==='draw'?(myTurn?'타일을 한 개 뽑으세요':`${Core.esc(cur?.name||'-')}님이 타일을 뽑는 중`):r.step==='decision'?(myTurn?'정답입니다. 계속 추리할까요?':`${Core.esc(cur?.name||'-')}님이 계속할지 결정 중`):(myTurn?'상대의 숨은 숫자를 추리하세요':`${Core.esc(cur?.name||'-')}님의 추리 차례`);
+    board.innerHTML=`<div class="code-stage"><div class="code-status"><div><span>현재 차례</span><b>${Core.esc(cur?.name||'-')}</b></div><div><span>남은 타일</span><b>${(r.pool||[]).length}개</b></div><div><span>숨은 암호</span><b>${hiddenTotal}개</b></div><div><span>내 미공개 타일</span><b>${hiddenCount(me)}개</b></div></div><div class="code-layout"><section class="code-main"><div class="code-turn"><h2>${stepTitle}</h2><p>${Core.esc(r.lastAction||'상대의 암호를 해독하세요.')}</p></div><div class="code-players">${ps.filter(p=>p.id!==Core.me.id).map(p=>`<article class="code-row ${p.id===cur?.id?'current':''} ${p.eliminated?'eliminated':''}"><div class="code-row-head"><div class="code-row-name"><div class="avatar">${Core.esc(Core.initials(p.name))}</div><div><b>${Core.esc(p.name)}</b><small>미공개 ${hiddenCount(p)}개</small></div></div><div class="code-badges">${p.bot||p.aiAssist?'<span class="code-badge ai">AI</span>':''}${p.eliminated?'<span class="code-badge out">암호 해독 완료</span>':''}</div></div><div class="code-tiles">${(p.codeTiles||[]).map(t=>publicTileHtml(t,p.id,canPick&&!p.eliminated)).join('')}</div>${selected.playerId===p.id&&selected.tileId?`<div class="code-wrong-list">이 타일에서 틀린 숫자: ${(r.wrongGuesses?.[selected.tileId]||[]).join(', ')||'없음'}</div>`:''}</article>`).join('')}</div>${r.step==='draw'&&myTurn?`<div class="code-draw-area"><button class="btn btn-primary code-draw-btn" id="btnDraw">타일 1개 뽑기</button></div>`:''}${r.step==='guess'&&myTurn?`<div class="code-guess-panel"><h3>${targetTile?`${Core.esc(targetTile.p.name)}님의 ${targetTile.t.color==='black'?'검정':'흰색'} 타일 선택됨`:'먼저 상대의 숨은 타일을 선택하세요'}</h3><p>선택한 타일의 숫자를 추리하세요.</p><div class="code-numbers">${Array.from({length:12},(_,n)=>`<button class="code-number" data-guess="${n}" ${!targetTile||(r.wrongGuesses?.[selected.tileId]||[]).includes(n)?'disabled':''}>${n}</button>`).join('')}</div></div>`:''}${r.step==='decision'&&myTurn?`<div class="code-decision"><strong>${r.guessStreak||1}개 연속 정답</strong><button class="btn btn-primary" id="btnContinue">계속 추리</button><button class="btn" id="btnStop">여기서 멈추기</button></div>`:''}</section><aside class="code-side"><div class="code-side-card"><h3>내 암호</h3><div class="code-my-tiles">${(me.codeTiles||[]).map(t=>tileHtml(t,{visible:true})).join('')}</div></div><div class="code-side-card"><h3>이번에 뽑은 타일</h3><div class="code-pending">${pendingMine?tileHtml(pendingMine,{visible:true}):`<p>${r.pendingDraw?'상대가 타일을 확인 중입니다.':'아직 뽑은 타일이 없습니다.'}</p>`}</div></div><div class="code-side-card"><h3>정렬 규칙</h3><p>왼쪽에서 오른쪽으로 숫자가 커집니다.<br>같은 숫자는 검정 타일이 흰색 타일보다 먼저 놓입니다.<br><br>정답이면 계속하거나 멈출 수 있고, 오답이면 이번에 뽑은 타일이 공개됩니다.</p></div></aside></div></div>`;
+    board.querySelectorAll('[data-target-tile]').forEach(b=>b.addEventListener('click',()=>{selected={playerId:b.dataset.targetPlayer,tileId:b.dataset.targetTile};render(room);}));
+    board.querySelectorAll('[data-guess]').forEach(b=>b.addEventListener('click',()=>submitGuess(Number(b.dataset.guess))));
+    document.getElementById('btnDraw')?.addEventListener('click',drawTile);document.getElementById('btnContinue')?.addEventListener('click',()=>continueGuess());document.getElementById('btnStop')?.addEventListener('click',()=>stopGuess());
+    Core.actionAlert(roomId,myTurn?`turn:${cur?.id}:${r.step}`:'',myTurn?'내 차례입니다. 암호를 추리하세요.':'');
+  }
+  function renderOver(r){
+    const ps=seatedList(r),winner=r.players[r.winner],elims=(r.eliminatedOrder||[]).map(id=>r.players[id]).filter(Boolean);
+    board.innerHTML=`<div class="code-result"><div class="eyebrow">CODE COMPLETE</div><h2>암호 해독 완료</h2><div class="code-winner"><b>최종 승리 · ${Core.esc(winner?.name||'승자 없음')}</b><p>마지막까지 공개되지 않은 암호를 지켰습니다.</p></div><div class="code-rank">${winner?`<div class="code-rank-row win"><span>1위 · <b>${Core.esc(winner.name)}</b></span><span>미공개 ${hiddenCount(winner)}개</span></div>`:''}${elims.slice().reverse().map((p,i)=>`<div class="code-rank-row"><span>${i+2}위 · <b>${Core.esc(p.name)}</b></span><span>전체 공개</span></div>`).join('')}</div><div class="modal-actions"><button class="btn" id="btnLeaveAfterGame">자료실 목록으로</button>${isHost(r)?'<button class="btn btn-primary" id="btnRestart">다시 시작</button>':''}</div></div>`;
+    document.getElementById('btnLeaveAfterGame')?.addEventListener('click',async()=>{sessionStorage.setItem('table9:suppressRejoinOnce','1');await Core.leaveRoom(roomId).catch(()=>{});location.href='index.html';});
+    document.getElementById('btnRestart')?.addEventListener('click',()=>Core.updateRoom(roomId,rr=>{rr.phase='lobby';['pool','pendingDraw','turn','step','guessStreak','awaitDecision','wrongGuesses','lastReveal','eliminatedOrder','winner','lastAction','finishedAt','randomStep'].forEach(k=>delete rr[k]);Object.values(rr.players||{}).forEach(p=>{delete p.codeTiles;delete p.eliminated;delete p.eliminatedAt;p.ready=!!p.bot||!!p.aiAssist;});}));
+  }
+  function render(r){paintAi(r);document.body.dataset.gamePhase=r.phase||'lobby';if(r.phase==='lobby')renderLobby(r);else if(r.phase==='playing')renderGame(r);else renderOver(r);}
+
+  Core.onRoom(roomId,r=>{if(!r){room=null;board.innerHTML='<div class="empty-state">자료실이 삭제되었습니다.<br><a class="btn" href="index.html">목록으로</a></div>';return;}room=r;if(selected.tileId){const found=seatedList(r).some(p=>(p.codeTiles||[]).some(t=>t.id===selected.tileId&&!t.revealed));if(!found)selected={playerId:null,tileId:null};}render(r);maybeAuto();});
+  document.querySelector('[data-leave]').addEventListener('click',async()=>{if(!confirm('자료실에서 나가시겠습니까?'))return;sessionStorage.setItem('table9:suppressRejoinOnce','1');await Core.updateRoom(roomId,r=>{if(r.phase!=='playing')return;const p=r.players?.[Core.me.id];if(!p)return;(p.codeTiles||[]).forEach(t=>t.revealed=true);p.eliminated=true;markEliminated(r);if(currentPlayer(r)?.id===p.id)finishTurn(r);else checkOver(r);}).catch(()=>{});await Core.leaveRoom(roomId).catch(()=>{});location.href='index.html';});
+  window.addEventListener('beforeunload',()=>{if(botTimer)clearTimeout(botTimer);});
+})();
+</script>
+</body>
+</html>

@@ -17,7 +17,7 @@
     pass:   { name: 'NO THANKS', min: 3, max: 7, file: 'pass.html'   },
     ladder: { name: 'DALMUTI', min: 4, max: 8, file: 'ladder.html' },
     onecard:{ name: 'ONE CARD', min: 2, max: 5, file: 'onecard.html' },
-    thief:  { name: '도둑잡기', min: 3, max: 6, file: 'thief.html' }
+    davinci:{ name: '다빈치 코드', min: 2, max: 4, file: 'davinci.html' }
   };
   const BOT_TITLES = ['인턴', '사원', '대리', '과장', '차장', '부장', '이사', '상무'];
 
@@ -916,11 +916,13 @@
             'rankChoices', 'taxPaid', 'taxReturned', 'threat',
             'escapeOrder', 'pendingPower', 'peek', 'duel', 'turnDeadline',
             'loser', 'lastMove', 'jokerTrail', 'lastJokerMoveAt', 'finishedAt',
-            'randomStep'
+            'randomStep', 'pool', 'pendingDraw', 'guessStreak', 'awaitDecision',
+            'wrongGuesses', 'lastReveal', 'eliminatedOrder'
           ].forEach((k) => delete r[k]);
           Object.values(r.players || {}).forEach((p) => {
             delete p.hand; delete p.eq; delete p.hp; delete p.role; delete p.tiles; delete p.chips;
             delete p.shield; delete p.guessUsed; delete p.escapedAt;
+            delete p.codeTiles; delete p.eliminated;
             p.ready = !!p.bot || !!p.aiAssist;
           });
         } else {

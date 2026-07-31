@@ -372,11 +372,11 @@
           </a>
 
 
-          <a class="b24-game" data-g="thief" href="#" data-new="thief">
-            <span class="b24-game-icon" aria-hidden="true">◎</span>
-            <h3>도둑잡기</h3>
-            <div class="b24-game-code">THIEF</div>
-            <div class="b24-game-meta"><span>3–6인</span><span>15–25분</span><span>난이도 ●●○</span></div>
+          <a class="b24-game" data-g="davinci" href="#" data-new="davinci">
+            <span class="b24-game-icon" aria-hidden="true">#</span>
+            <h3>암호 해독 업무</h3>
+            <div class="b24-game-code">DAVINCI CODE</div>
+            <div class="b24-game-meta"><span>2–4인</span><span>15–30분</span><span>난이도 ●●●</span></div>
             <span class="b24-game-arrow" aria-hidden="true">→</span>
           </a>
         </div>
@@ -398,7 +398,7 @@
             <li><b>사용자 검증 프로세스</b><small>역할·활동 로그 개선</small></li>
             <li><b>업무 우선순위</b><small>모바일 조작 영역 최적화</small></li>
             <li><b>회원 등급 관리</b><small>순서·카드 화면 개선</small></li>
-            <li><b>업무 카드 전달</b><small>최대 5인 플레이 지원</small></li>
+            <li><b>암호 해독 업무</b><small>다빈치 코드 추리 게임 추가</small></li>
           </ul>
         </section>
       </div>
@@ -515,8 +515,8 @@
 
 
       <section>
-        <h4>도둑잡기 · 잠복자 모드 <small>3–6인</small></h4>
-        <p>같은 숫자 카드 두 장은 자동으로 정리됩니다. 차례마다 옆 사람 카드 한 장을 뽑고, A·K·Q·J·7 짝의 특수 능력과 게임당 한 번의 도둑 지목을 활용합니다. 마지막 두 명은 5초 제한의 긴급 감사 모드로 진행되며, 끝까지 조커를 가진 사람이 패배합니다.</p>
+        <h4>암호 해독 업무 · 다빈치 코드 <small>2–4인</small></h4>
+        <p>검정과 흰색의 0~11 숫자 타일을 낮은 순서로 배열합니다. 차례에 타일 하나를 뽑고 상대의 숨은 숫자를 추리합니다. 정답이면 계속 추리하거나 멈출 수 있고, 오답이면 이번에 뽑은 타일을 공개합니다. 마지막까지 숨은 암호가 남은 사람이 승리합니다.</p>
       </section>
 
       <section>
@@ -575,7 +575,7 @@
         <option value="ladder">DALMUTI · 4–8인</option>
         <option value="outlaw">BANG · 4–7인</option>
         <option value="onecard">ONE CARD · 2–5인</option>
-        <option value="thief">THIEF · 3–6인</option>
+        <option value="davinci">DAVINCI CODE · 2–4인</option>
       </select>
     </label>
     <label class="field">
@@ -596,7 +596,7 @@
 
 <script src="assets/firebase-config.js"></script>
 <script src="assets/firebase.js"></script>
-<script src="assets/core.js?v=thief-click-fix-20260731"></script>
+<script src="assets/core.js?v=davinci-code-20260731"></script>
 <script>
 (async function () {
   'use strict';
@@ -608,13 +608,13 @@
 
   await Core.init();
 
-  // 도둑잡기 홈 클릭 안전장치:
+  // 다빈치 코드 홈 클릭 안전장치:
   // 브라우저에 이전 core.js가 남아 있어도 게임 목록과 방 생성 검증에 즉시 등록한다.
-  Core.GAMES.thief = Core.GAMES.thief || {
-    name: '도둑잡기',
-    min: 3,
-    max: 6,
-    file: 'thief.html'
+  Core.GAMES.davinci = Core.GAMES.davinci || {
+    name: '다빈치 코드',
+    min: 2,
+    max: 4,
+    file: 'davinci.html'
   };
 
   // 일반 닉네임 세션은 더 이상 사용하지 않고 Google 계정만 허용한다.
@@ -830,11 +830,11 @@
 
   /* ---------- 방 목록 ---------- */
   function paintRooms() {
-    const list = rooms;
-    $('roomCount').textContent = rooms.length;
-    const waiting = rooms.filter((r) => r.phase === 'lobby').length;
-    const playing = rooms.length - waiting;
-    const users = rooms.reduce((n, r) => n + Object.values(r.players || {})
+    const list = rooms.filter((r) => r.game !== 'thief' && Core.GAMES[r.game]);
+    $('roomCount').textContent = list.length;
+    const waiting = list.filter((r) => r.phase === 'lobby').length;
+    const playing = list.length - waiting;
+    const users = list.reduce((n, r) => n + Object.values(r.players || {})
       .filter((p) => !p.bot && !Core.isStale(p)).length, 0);
     $('kpiWaiting').textContent = waiting;
     $('kpiPlaying').textContent = playing;
@@ -864,13 +864,13 @@
         outlaw: 'BANG',
         pass: 'NO THANKS',
         ladder: 'DALMUTI',
-        thief: 'THIEF'
+        davinci: 'CODE'
       }[r.game] || String(r.game || '').toUpperCase();
 
       return `
         <div class="room-row">
           <span class="tag ${r.game}">
-            <span class="tag-desktop">${g.name.split(' ')[0]}</span>
+            <span class="tag-desktop">${Core.esc((g?.name || r.game).split(' ')[0])}</span>
             <span class="tag-mobile">${gameCode}</span>
           </span>
           <div>
@@ -903,7 +903,7 @@
           <div><span class="tag ${r.game}">${Core.esc(Core.GAMES[r.game]?.name || r.game)}</span>
           <b>${Core.esc(maskRoomTitle(r.title))}</b> <small>${Core.esc(r.id)} · ${Core.esc(r.phase)}</small></div>
           <div class="admin-actions">
-            <button class="btn btn-sm btn-primary" data-admin-watch="${r.id}" data-game="${r.game}">관전</button>
+            ${Core.GAMES[r.game] ? `<button class="btn btn-sm btn-primary" data-admin-watch="${r.id}" data-game="${r.game}">관전</button>` : `<button class="btn btn-sm" disabled>종료된 게임</button>`}
             <button class="btn btn-sm" data-admin="skip_turn" data-room="${r.id}">턴 넘기기</button>
             <button class="btn btn-sm" data-admin="reset_game" data-room="${r.id}">세션 초기화</button>
             <button class="btn btn-sm btn-danger" data-admin="delete_room" data-room="${r.id}">자료실 삭제</button>
