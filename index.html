@@ -370,6 +370,15 @@
             <div class="b24-game-meta"><span>2–5인</span><span>10–20분</span><span>난이도 ●○○</span></div>
             <span class="b24-game-arrow" aria-hidden="true">→</span>
           </a>
+
+
+          <a class="b24-game" data-g="thief" href="#" data-new="thief">
+            <span class="b24-game-icon" aria-hidden="true">◎</span>
+            <h3>도둑잡기</h3>
+            <div class="b24-game-code">THIEF</div>
+            <div class="b24-game-meta"><span>3–6인</span><span>15–25분</span><span>난이도 ●●○</span></div>
+            <span class="b24-game-arrow" aria-hidden="true">→</span>
+          </a>
         </div>
       </section>
 
@@ -504,6 +513,12 @@
         <p>같은 숫자의 카드를 같은 장수만큼 내되, 앞사람보다 강한 카드만 낼 수 있습니다. 손패를 먼저 비운 순서로 다음 라운드의 직급이 결정됩니다.</p>
       </section>
 
+
+      <section>
+        <h4>도둑잡기 · 잠복자 모드 <small>3–6인</small></h4>
+        <p>같은 숫자 카드 두 장은 자동으로 정리됩니다. 차례마다 옆 사람 카드 한 장을 뽑고, A·K·Q·J·7 짝의 특수 능력과 게임당 한 번의 도둑 지목을 활용합니다. 마지막 두 명은 5초 제한의 긴급 감사 모드로 진행되며, 끝까지 조커를 가진 사람이 패배합니다.</p>
+      </section>
+
       <section>
         <h4>재접속과 나가기</h4>
         <p>새로고침·화면 잠금·일시적인 연결 끊김은 같은 이름과 좌석으로 자동 복구됩니다. 진행 화면의 <b>나가기</b>를 누르면 참가자 목록에서 완전히 퇴장하므로 재접속 안내가 다시 뜨지 않습니다.</p>
@@ -560,6 +575,7 @@
         <option value="ladder">DALMUTI · 4–8인</option>
         <option value="outlaw">BANG · 4–7인</option>
         <option value="onecard">ONE CARD · 2–5인</option>
+        <option value="thief">THIEF · 3–6인</option>
       </select>
     </label>
     <label class="field">
@@ -838,7 +854,8 @@
       const gameCode = {
         outlaw: 'BANG',
         pass: 'NO THANKS',
-        ladder: 'DALMUTI'
+        ladder: 'DALMUTI',
+        thief: 'THIEF'
       }[r.game] || String(r.game || '').toUpperCase();
 
       return `

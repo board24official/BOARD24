@@ -16,7 +16,8 @@
     outlaw: { name: 'BANG', min: 4, max: 7, file: 'outlaw.html' },
     pass:   { name: 'NO THANKS', min: 3, max: 7, file: 'pass.html'   },
     ladder: { name: 'DALMUTI', min: 4, max: 8, file: 'ladder.html' },
-    onecard:{ name: 'ONE CARD', min: 2, max: 5, file: 'onecard.html' }
+    onecard:{ name: 'ONE CARD', min: 2, max: 5, file: 'onecard.html' },
+    thief:  { name: '도둑잡기', min: 3, max: 6, file: 'thief.html' }
   };
   const BOT_TITLES = ['인턴', '사원', '대리', '과장', '차장', '부장', '이사', '상무'];
 
@@ -912,11 +913,15 @@
             'deck', 'discard', 'pending', 'turn', 'step', 'winner', 'startedAt',
             'currentSuit', 'attack', 'attackLevel', 'direction', 'oneCardPlayer',
             'oneCardDeclared', 'shuffleCount', 'lastAction', 'tile', 'pos',
-            'rankChoices', 'taxPaid', 'taxReturned', 'threat'
+            'rankChoices', 'taxPaid', 'taxReturned', 'threat',
+            'escapeOrder', 'pendingPower', 'peek', 'duel', 'turnDeadline',
+            'loser', 'lastMove', 'jokerTrail', 'lastJokerMoveAt', 'finishedAt',
+            'randomStep'
           ].forEach((k) => delete r[k]);
           Object.values(r.players || {}).forEach((p) => {
             delete p.hand; delete p.eq; delete p.hp; delete p.role; delete p.tiles; delete p.chips;
-            p.ready = !!p.bot;
+            delete p.shield; delete p.guessUsed; delete p.escapedAt;
+            p.ready = !!p.bot || !!p.aiAssist;
           });
         } else {
           throw new Error('알 수 없는 관리자 명령입니다.');
