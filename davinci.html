@@ -37,7 +37,7 @@ button.code-tile { padding:0; cursor:pointer; }
 .code-tile.black { color:#fff; background:linear-gradient(145deg,#111827,#27344b); border-color:#0d1421; }
 .code-tile.white { color:#182033; background:linear-gradient(145deg,#fff,#edf1f6); }
 .code-tile.concealed.black::before,.code-tile.concealed.white::before { content:'?'; position:absolute; inset:0; display:grid; place-items:center; font:700 34px var(--f-display); opacity:.82; }
-.code-tile.concealed.black::after,.code-tile.concealed.white::after { content:''; position:absolute; left:11px; right:11px; bottom:12px; height:2px; background:currentColor; opacity:.35; }
+.code-tile.concealed.black::after,.code-tile.concealed.white::after { display:none; }
 .code-tile .num { position:absolute; inset:0; display:grid; place-items:center; font:700 36px var(--f-display); }
 .code-tile .color-label { position:absolute; left:0; right:0; bottom:7px; text-align:center; font:8px var(--f-mono); letter-spacing:.08em; opacity:.62; }
 .code-tile.revealed { outline:3px solid rgba(219,65,81,.26); }
@@ -489,6 +489,58 @@ button.code-tile:disabled { cursor:default; }
   }
 }
 
+
+.code-tile.revealed {
+  outline: 3px solid rgba(219,65,81,.24);
+  box-shadow: 0 0 0 4px rgba(219,65,81,.10), 0 8px 18px rgba(24,37,63,.16);
+}
+.code-tile.revealed::before {
+  content: '공개';
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  z-index: 2;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: #db4151;
+  color: #fff;
+  font: 700 9px var(--f-mono);
+  letter-spacing: .02em;
+  box-shadow: 0 4px 10px rgba(219,65,81,.22);
+}
+.code-tile.revealed .color-label {
+  opacity: .9;
+  font-weight: 700;
+}
+.code-row-meta {
+  display:flex;
+  gap:8px;
+  align-items:center;
+  flex-wrap:wrap;
+}
+.code-row-meta .public-state {
+  display:inline-flex;
+  align-items:center;
+  gap:4px;
+  padding:2px 7px;
+  border-radius:999px;
+  background:#ffe9ec;
+  color:#b13a46;
+  font:700 9px var(--f-mono);
+}
+.code-row-meta .public-state::before {
+  content:'';
+  width:6px;
+  height:6px;
+  border-radius:50%;
+  background:currentColor;
+}
+@media (max-width: 1100px) {
+  .code-row-meta { gap:6px; }
+  .code-row-meta .public-state { font-size:8px; }
+  .code-tile.revealed::before { top:4px; right:4px; padding:2px 6px; font-size:8px; }
+}
+
 </style>
 </head>
 <body class="is-game game-davinci">
@@ -550,6 +602,7 @@ button.code-tile:disabled { cursor:default; }
   const tileKey=t=>Number(t.num)*2+(t.color==='black'?0:1);
   const sortTiles=tiles=>(tiles||[]).sort((a,b)=>tileKey(a)-tileKey(b));
   const hiddenCount=p=>(p?.codeTiles||[]).filter(t=>!t.revealed).length;
+  const revealedCount=p=>(p?.codeTiles||[]).filter(t=>!!t.revealed).length;
   const activePlayers=r=>seatedList(r).filter(p=>!p.eliminated&&hiddenCount(p)>0);
   const currentPlayer=r=>{const ps=seatedList(r);return ps.length?ps[mod(Number(r.turn)||0,ps.length)]:null;};
   let room=null,botTimer=null,actionBusy=false,selected={playerId:null,tileId:null},renderedPendingId=null;
@@ -752,7 +805,7 @@ button.code-tile:disabled { cursor:default; }
     const hiddenTotal=ps.reduce((n,p)=>n+hiddenCount(p),0),pendingMine=r.pendingDraw?.ownerId===Core.me.id?r.pendingDraw.tile:null;
     const pendingFresh=!!(pendingMine&&pendingMine.id!==renderedPendingId);
     const stepTitle=r.step==='draw'?(myTurn?'타일을 한 개 뽑으세요':`${Core.esc(cur?.name||'-')}님이 타일을 뽑는 중`):r.step==='decision'?(myTurn?'정답입니다. 계속 추리할까요?':`${Core.esc(cur?.name||'-')}님이 계속할지 결정 중`):(myTurn?'상대의 숨은 숫자를 추리하세요':`${Core.esc(cur?.name||'-')}님의 추리 차례`);
-    board.innerHTML=`<div class="code-stage"><div class="code-status"><div><span>현재 차례</span><b>${Core.esc(cur?.name||'-')}</b></div><div><span>남은 타일</span><b>${(r.pool||[]).length}개</b></div><div><span>숨은 암호</span><b>${hiddenTotal}개</b></div><div><span>내 미공개 타일</span><b>${hiddenCount(me)}개</b></div></div><div class="code-layout"><section class="code-main"><div class="code-turn"><h2>${stepTitle}</h2><p>${Core.esc(r.lastAction||'상대의 암호를 해독하세요.')}</p></div><div class="code-players">${ps.filter(p=>p.id!==Core.me.id).map(p=>`<article class="code-row ${p.id===cur?.id?'current':''} ${p.eliminated?'eliminated':''}"><div class="code-row-head"><div class="code-row-name"><div class="avatar">${Core.esc(Core.initials(p.name))}</div><div><b>${Core.esc(p.name)}</b><small>미공개 ${hiddenCount(p)}개</small></div></div><div class="code-badges">${p.bot||p.aiAssist?'<span class="code-badge ai">AI</span>':''}${p.eliminated?'<span class="code-badge out">암호 해독 완료</span>':''}</div></div><div class="code-tiles">${(p.codeTiles||[]).map(t=>publicTileHtml(t,p.id,canPick&&!p.eliminated)).join('')}</div>${selected.playerId===p.id&&selected.tileId?`<div class="code-wrong-list">이 타일에서 틀린 숫자: ${(r.wrongGuesses?.[selected.tileId]||[]).join(', ')||'없음'}</div>`:''}</article>`).join('')}</div>${r.step==='draw'&&myTurn?`<div class="code-draw-area"><button class="btn btn-primary code-draw-btn" id="btnDraw">타일 1개 뽑기</button></div>`:''}${r.step==='guess'&&myTurn?`<div class="code-guess-panel"><h3>${targetTile?`${Core.esc(targetTile.p.name)}님의 ${targetTile.t.color==='black'?'검정':'흰색'} 타일 선택됨`:'먼저 상대의 숨은 타일을 선택하세요'}</h3><p>선택한 타일의 숫자를 추리하세요.</p><div class="code-numbers">${Array.from({length:12},(_,n)=>`<button class="code-number" data-guess="${n}" ${!targetTile||(r.wrongGuesses?.[selected.tileId]||[]).includes(n)?'disabled':''}>${n}</button>`).join('')}</div></div>`:''}${r.step==='decision'&&myTurn?`<div class="code-decision"><strong>${r.guessStreak||1}개 연속 정답</strong><button class="btn btn-primary" id="btnContinue">계속 추리</button><button class="btn" id="btnStop">여기서 멈추기</button></div>`:''}</section><aside class="code-side"><div class="code-side-card"><h3>내 암호</h3><div class="code-my-tiles">${(me.codeTiles||[]).map(t=>tileHtml(t,{visible:true})).join('')}</div></div><div class="code-side-card"><h3>이번에 뽑은 타일</h3><div class="code-pending">${pendingMine?`${tileHtml(pendingMine,{visible:true,fresh:pendingFresh})}<p class="code-pending-note">추리를 멈추면 내 암호에 추가되고, 틀리면 공개됩니다.</p>`:`<p>${r.pendingDraw?'상대가 타일을 확인 중입니다.':'아직 뽑은 타일이 없습니다.'}</p>`}</div></div><div class="code-side-card"><h3>정렬 규칙</h3><p>왼쪽에서 오른쪽으로 숫자가 커집니다.<br>같은 숫자는 검정 타일이 흰색 타일보다 먼저 놓입니다.<br><br>정답이면 계속하거나 멈출 수 있고, 오답이면 이번에 뽑은 타일이 공개됩니다.</p></div></aside></div></div>`;
+    board.innerHTML=`<div class="code-stage"><div class="code-status"><div><span>현재 차례</span><b>${Core.esc(cur?.name||'-')}</b></div><div><span>남은 타일</span><b>${(r.pool||[]).length}개</b></div><div><span>숨은 암호</span><b>${hiddenTotal}개</b></div><div><span>내 미공개 타일</span><b>${hiddenCount(me)}개</b></div></div><div class="code-layout"><section class="code-main"><div class="code-turn"><h2>${stepTitle}</h2><p>${Core.esc(r.lastAction||'상대의 암호를 해독하세요.')}</p></div><div class="code-players">${ps.filter(p=>p.id!==Core.me.id).map(p=>`<article class="code-row ${p.id===cur?.id?'current':''} ${p.eliminated?'eliminated':''}"><div class="code-row-head"><div class="code-row-name"><div class="avatar">${Core.esc(Core.initials(p.name))}</div><div><b>${Core.esc(p.name)}</b><div class="code-row-meta"><small>미공개 ${hiddenCount(p)}개</small>${revealedCount(p)?`<span class="public-state">공개 ${revealedCount(p)}개</span>`:''}</div></div></div><div class="code-badges">${p.bot||p.aiAssist?'<span class="code-badge ai">AI</span>':''}${p.eliminated?'<span class="code-badge out">암호 해독 완료</span>':''}</div></div><div class="code-tiles">${(p.codeTiles||[]).map(t=>publicTileHtml(t,p.id,canPick&&!p.eliminated)).join('')}</div>${selected.playerId===p.id&&selected.tileId?`<div class="code-wrong-list">이 타일에서 틀린 숫자: ${(r.wrongGuesses?.[selected.tileId]||[]).join(', ')||'없음'}</div>`:''}</article>`).join('')}</div>${r.step==='draw'&&myTurn?`<div class="code-draw-area"><button class="btn btn-primary code-draw-btn" id="btnDraw">타일 1개 뽑기</button></div>`:''}${r.step==='guess'&&myTurn?`<div class="code-guess-panel"><h3>${targetTile?`${Core.esc(targetTile.p.name)}님의 ${targetTile.t.color==='black'?'검정':'흰색'} 타일 선택됨`:'먼저 상대의 숨은 타일을 선택하세요'}</h3><p>선택한 타일의 숫자를 추리하세요.</p><div class="code-numbers">${Array.from({length:12},(_,n)=>`<button class="code-number" data-guess="${n}" ${!targetTile||(r.wrongGuesses?.[selected.tileId]||[]).includes(n)?'disabled':''}>${n}</button>`).join('')}</div></div>`:''}${r.step==='decision'&&myTurn?`<div class="code-decision"><strong>${r.guessStreak||1}개 연속 정답</strong><button class="btn btn-primary" id="btnContinue">계속 추리</button><button class="btn" id="btnStop">여기서 멈추기</button></div>`:''}</section><aside class="code-side"><div class="code-side-card"><h3>내 암호</h3><div class="code-my-tiles">${(me.codeTiles||[]).map(t=>tileHtml(t,{visible:true})).join('')}</div></div><div class="code-side-card"><h3>이번에 뽑은 타일</h3><div class="code-pending">${pendingMine?`${tileHtml(pendingMine,{visible:true,fresh:pendingFresh})}<p class="code-pending-note">추리를 멈추면 내 암호에 추가되고, 틀리면 공개됩니다.</p>`:`<p>${r.pendingDraw?'상대가 타일을 확인 중입니다.':'아직 뽑은 타일이 없습니다.'}</p>`}</div></div><div class="code-side-card"><h3>정렬 규칙</h3><p>왼쪽에서 오른쪽으로 숫자가 커집니다.<br>같은 숫자는 검정 타일이 흰색 타일보다 먼저 놓입니다.<br><br>정답이면 계속하거나 멈출 수 있고, 오답이면 이번에 뽑은 타일이 공개됩니다.</p></div></aside></div></div>`;
     renderedPendingId=pendingMine?.id||null;
 
     board.querySelectorAll('[data-target-tile]').forEach(b=>b.addEventListener('click',()=>{
