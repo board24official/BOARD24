@@ -1026,7 +1026,7 @@ body.game-onecard #chatPane.hidden {
           if (declared) {
             r.oneCardDeclared[p.id] = true;
           } else {
-            const penalty = drawCards(r, p, 2);
+            const penalty = drawCards(r, p, 1);
             r.oneCardDeclared[p.id] = false;
             r.lastAction = `${p.name}: 원카드 미선언 벌칙 ${penalty}장`;
           }
@@ -1444,7 +1444,7 @@ body.game-onecard #chatPane.hidden {
           </div>
         </div>
 
-        <div class="oc-rule-note">공격 방어 순서: 2 → A → 흑백 조커 → 컬러 조커. 같은 단계 이상의 공격 카드만 이어낼 수 있으며, 흑백 조커는 현재 문양이 스페이드·클로버일 때만 가능합니다. J 건너뛰기 · Q 방향 전환 · K 한 번 더 · 7 문양 변경 · 원카드 미선언 시 2장 벌칙</div>
+        <div class="oc-rule-note">공격 방어 순서: 2 → A → 흑백 조커 → 컬러 조커. 같은 단계 이상의 공격 카드만 이어낼 수 있으며, 흑백 조커는 현재 문양이 스페이드·클로버일 때만 가능합니다. J 건너뛰기 · Q 방향 전환 · K 한 번 더 · 7 문양 변경 · 원카드 미선언 시 1장 벌칙</div>
       </div>
       ${suitChoiceHtml(choiceCard)}`;
 
