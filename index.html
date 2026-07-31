@@ -596,7 +596,7 @@
 
 <script src="assets/firebase-config.js"></script>
 <script src="assets/firebase.js"></script>
-<script src="assets/core.js"></script>
+<script src="assets/core.js?v=thief-click-fix-20260731"></script>
 <script>
 (async function () {
   'use strict';
@@ -607,6 +607,15 @@
   }
 
   await Core.init();
+
+  // 도둑잡기 홈 클릭 안전장치:
+  // 브라우저에 이전 core.js가 남아 있어도 게임 목록과 방 생성 검증에 즉시 등록한다.
+  Core.GAMES.thief = Core.GAMES.thief || {
+    name: '도둑잡기',
+    min: 3,
+    max: 6,
+    file: 'thief.html'
+  };
 
   // 일반 닉네임 세션은 더 이상 사용하지 않고 Google 계정만 허용한다.
   if (Core.me && !Core.isGoogleLogin()) Core.logout();
@@ -1068,6 +1077,10 @@
   function seatOptions(game) {
     const g = Core.GAMES[game];
     const sel = $('nrSeats');
+    if (!g) {
+      Core.toast('게임 정보를 새로 불러오는 중입니다. 잠시 후 다시 눌러 주세요.');
+      return;
+    }
     sel.innerHTML = '';
     for (let i = g.min; i <= g.max; i++) {
       sel.insertAdjacentHTML('beforeend',
