@@ -549,6 +549,153 @@ button.code-tile:disabled { cursor:default; }
   display: none;
 }
 
+
+
+/* ---------- 다빈치 코드 로비·순서 칩·간결 정보·모바일 한눈보기 ---------- */
+.code-info-strip {
+  display:flex;
+  align-items:stretch;
+  justify-content:center;
+  gap:0;
+  width:min(900px,100%);
+  margin:0 auto;
+  padding:10px 14px;
+  border:1px solid #dce3ee;
+  border-radius:12px;
+  background:#fff;
+  box-shadow:0 2px 8px rgba(31,49,86,.04);
+}
+.code-info-strip > span {
+  min-width:0;
+  flex:1;
+  padding:2px 16px;
+  color:#7a8597;
+  font:10px var(--f-mono);
+  text-align:center;
+}
+.code-info-strip > span + span { border-left:1px solid #e5eaf1; }
+.code-info-strip b {
+  display:block;
+  overflow:hidden;
+  margin-top:4px;
+  color:#202938;
+  font:700 16px var(--f-body);
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+
+.code-order-stage { width:min(900px,100%); margin:26px auto; text-align:center; }
+.code-order-stage h2 { margin:8px 0 5px; color:#202938; font-size:28px; }
+.code-order-stage > p { margin:0; color:#728096; font-size:13px; }
+.code-order-chips { display:flex; justify-content:center; flex-wrap:wrap; gap:12px; margin:24px 0 18px; }
+.code-order-chip {
+  width:82px; height:82px; border:1px solid #b9c8e3; border-radius:50%;
+  background:radial-gradient(circle at 35% 30%,#fff,#dce7fb 60%,#c4d4f0);
+  color:#2f5eb8; box-shadow:0 9px 20px rgba(35,69,132,.15);
+  font:700 27px var(--f-display); cursor:pointer;
+}
+.code-order-chip:not(:disabled):hover,.code-order-chip:not(:disabled):focus-visible { border-color:#3971e7; box-shadow:0 0 0 4px rgba(57,113,231,.14),0 12px 24px rgba(35,69,132,.2); }
+.code-order-chip.taken { opacity:.42; cursor:default; }
+.code-order-chip.mine { border-color:#3971e7; box-shadow:0 0 0 4px rgba(57,113,231,.16),0 9px 20px rgba(35,69,132,.15); }
+.code-order-chip.revealed { opacity:1; background:radial-gradient(circle at 35% 30%,#fff6cf,#f2c963 65%,#d69e2e); color:#62430b; border-color:#d6a32c; }
+.code-order-people { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:8px; margin-top:16px; }
+.code-order-person { display:flex; align-items:center; gap:9px; padding:10px 12px; border:1px solid #dfe5ee; border-radius:10px; background:#fff; text-align:left; }
+.code-order-person > div:nth-child(2) { min-width:0; flex:1; }
+.code-order-person b,.code-order-person small { display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.code-order-person small { margin-top:2px; color:#8792a3; font-size:10px; }
+.code-order-value { min-width:30px; text-align:center; color:#2f5eb8; font:700 18px var(--f-display); }
+.code-order-value.high { color:#b27800; }
+
+.code-tile.hyphen .num { font-size:44px; transform:translateY(-2px); }
+.code-number.hyphen-guess { color:#7d4bb4; background:#f7f0ff; border-color:#d8c2ee; }
+.code-number.hyphen-guess:hover,.code-number.hyphen-guess:focus-visible { background:#efe1ff; border-color:#9f72cc; }
+
+.code-rules-modal { width:min(650px,calc(100vw - 24px)); max-height:min(760px,calc(100dvh - 24px)); padding:0; overflow:hidden; }
+.code-rules-head { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:16px 18px; border-bottom:1px solid #e1e6ee; background:#fff; }
+.code-rules-head small { color:#7a879a; font:9px var(--f-mono); }
+.code-rules-head h3 { margin:3px 0 0; color:#202938; font-size:21px; }
+.code-rules-head button { width:36px; height:36px; border:1px solid #d6deea; border-radius:9px; background:#fff; color:#516078; font-size:22px; cursor:pointer; }
+.code-rules-body { display:grid; gap:9px; max-height:calc(100dvh - 110px); padding:16px 18px 20px; overflow-y:auto; background:#f6f8fc; }
+.code-rules-body section { padding:12px 13px; border:1px solid #dfe5ee; border-radius:10px; background:#fff; }
+.code-rules-body b { color:#2859b8; font-size:13px; }
+.code-rules-body p { margin:5px 0 0; color:#5f6d81; font-size:11px; line-height:1.55; }
+
+/* 규칙 카드를 제거한 뒤 내 암호와 이번 타일만 정리 */
+.code-side { grid-template-columns:minmax(0,1fr) minmax(280px,.62fr) !important; }
+.code-side-card { min-width:0; }
+
+@media (min-width:1101px) {
+  .code-stage { gap:12px; }
+  .code-main { padding:16px; }
+  .code-turn { padding:14px 16px; }
+  .code-turn h2 { font-size:24px; }
+  .code-players { margin-top:12px; }
+  .code-row { padding:13px 14px; }
+  .code-tiles { padding-bottom:7px; }
+  .code-side { align-items:stretch; }
+  .code-my-tiles { min-height:128px; align-items:center; }
+  .code-pending { min-height:128px; }
+}
+
+@media (max-width:860px) {
+  body.game-davinci .board { padding:8px 7px 10px !important; }
+  .code-stage { gap:7px !important; padding-bottom:6px !important; }
+  .code-info-strip { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); padding:7px 4px; border-radius:9px; }
+  .code-info-strip > span { padding:1px 3px; font-size:7px; }
+  .code-info-strip > span + span { border-left:1px solid #e5eaf1; }
+  .code-info-strip b { margin-top:2px; font-size:11px; }
+  .code-main { padding:7px !important; border-radius:10px; }
+  .code-turn { padding:8px 6px; }
+  .code-turn h2 { font-size:16px !important; }
+  .code-turn p { margin-top:4px; font-size:8px; }
+  .code-players { margin-top:6px; gap:6px; }
+  .code-row { padding:7px !important; border-radius:9px; }
+  .code-row-head { margin-bottom:5px; }
+  .code-row-name { gap:6px; }
+  .code-row-name .avatar { width:26px; height:26px; font-size:8px; }
+  .code-row-name b { font-size:10px; }
+  .code-row-meta small,.code-row-meta .public-state { font-size:7px !important; }
+  .code-badge { font-size:6px; padding:2px 5px; }
+  .code-tiles { min-height:74px !important; gap:4px; padding:3px 1px 5px !important; }
+  .code-tile { width:49px !important; height:72px !important; border-radius:6px; }
+  .code-tile .num,.code-tile .hidden-label { font-size:25px !important; }
+  .code-tile.hyphen .num { font-size:30px !important; }
+  .code-tile .color-label { bottom:4px; font-size:5px; }
+  .code-tile.revealed::before { top:3px; right:3px; padding:1px 4px; font-size:6px; }
+  .code-draw-area,.code-guess-panel,.code-decision { margin-top:6px !important; padding:7px !important; border-radius:9px; }
+  .code-draw-btn { min-width:190px; min-height:40px; }
+  .code-guess-panel h3 { font-size:10px; }
+  .code-guess-panel p { margin:3px 0 6px; font-size:7px; }
+  .code-numbers { grid-template-columns:repeat(7,minmax(0,1fr)) !important; gap:4px; }
+  .code-number { min-height:34px; font-size:10px; }
+  .code-side { display:grid !important; grid-template-columns:minmax(0,1fr) 98px !important; gap:6px !important; margin-top:0; }
+  .code-side-card { padding:7px !important; border-radius:9px; }
+  .code-side-card + .code-side-card { margin-top:0 !important; }
+  .code-side-card h3 { margin-bottom:5px !important; font-size:10px !important; }
+  .code-my-tiles { min-height:78px; flex-wrap:nowrap !important; gap:4px; padding:1px 0 4px !important; overflow-x:auto; }
+  .code-my-tiles .code-tile { width:49px !important; height:72px !important; }
+  .code-pending { min-height:78px !important; padding:3px; }
+  .code-pending .code-tile { width:49px !important; height:72px !important; }
+  .code-pending-note { display:none; }
+  .code-pending p { font-size:7px !important; line-height:1.4; }
+  .code-order-stage { margin:12px auto; }
+  .code-order-stage h2 { font-size:20px; }
+  .code-order-stage > p { font-size:9px; }
+  .code-order-chips { gap:7px; margin:15px 0 12px; }
+  .code-order-chip { width:58px; height:58px; font-size:20px; }
+  .code-order-people { grid-template-columns:1fr 1fr; gap:5px; margin-top:10px; }
+  .code-order-person { padding:7px; border-radius:8px; }
+  .code-order-person .avatar { width:25px; height:25px; font-size:8px; }
+  .code-order-person b { font-size:9px; }
+  .code-order-person small { font-size:7px; }
+  .code-order-value { font-size:14px; }
+  .code-rules-head { padding:12px; }
+  .code-rules-body { padding:10px; gap:7px; }
+  .code-rules-body section { padding:9px; }
+  .code-rules-body b { font-size:11px; }
+  .code-rules-body p { font-size:9px; }
+}
+
 </style>
 </head>
 <body class="is-game game-davinci">
@@ -572,6 +719,7 @@ button.code-tile:disabled { cursor:default; }
     <div><div class="gt-title">다빈치 코드</div><div class="gt-room" id="roomLabel">—</div></div>
     <div class="spacer" style="flex:1"></div>
     <button class="btn btn-ghost btn-sm header-action" data-alert-enable title="알림 켜기" aria-label="알림 켜기"><svg class="header-icon notification-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M18 8.5a6 6 0 0 0-12 0c0 7-3 7-3 8.5h18c0-1.5-3-1.5-3-8.5Z"/><path d="M9.5 20h5"/></svg><span class="header-label">알림</span></button>
+    <button class="btn btn-ghost btn-sm header-action" id="codeRulesBtn" type="button" title="게임 규칙" aria-label="게임 규칙"><span class="header-icon">?</span><span class="header-label">규칙</span></button>
     <button class="btn btn-ghost btn-sm header-action ai-assist-toggle" id="aiAssistToggle" type="button" title="AI 대리 켜기" aria-label="AI 대리 켜기" aria-pressed="false"><span class="header-icon ai-assist-mark">AI</span><span class="header-label">AI 전환</span></button>
     <button class="btn btn-ghost btn-sm header-action" data-leave title="나가기" aria-label="나가기"><span class="header-icon">↗</span><span class="header-label">나가기</span></button>
   </header>
@@ -583,6 +731,22 @@ button.code-tile:disabled { cursor:default; }
     <div class="side-pane hidden" id="logPane" aria-hidden="true"></div>
     <div class="chat-input"><input type="text" id="chatInput" maxlength="200" placeholder="메시지 입력" autocomplete="off"><button class="btn btn-sm" id="chatSend">전송</button></div>
   </aside>
+</div>
+
+<div class="modal-back hidden" id="codeRulesModal">
+  <div class="modal code-rules-modal" role="dialog" aria-modal="true" aria-labelledby="codeRulesTitle">
+    <div class="code-rules-head">
+      <div><small>DAVINCI CODE</small><h3 id="codeRulesTitle">게임 규칙</h3></div>
+      <button type="button" id="codeRulesClose" aria-label="규칙 닫기">×</button>
+    </div>
+    <div class="code-rules-body">
+      <section><b>시작 순서</b><p>모두 시작 순서 칩을 하나씩 고릅니다. 가장 높은 숫자를 뽑은 참가자가 먼저 시작합니다.</p></section>
+      <section><b>타일 정렬</b><p>숫자는 왼쪽에서 오른쪽으로 커집니다. 같은 숫자는 검정 타일을 흰색보다 먼저 놓습니다.</p></section>
+      <section><b>하이픈(-) 타일</b><p>검정·흰색 하이픈 타일이 한 장씩 들어갑니다. 숫자가 아니며 임의 위치에 놓여 정렬 추리를 방해합니다. 상대는 숫자 대신 <strong>-</strong>를 지목할 수 있습니다.</p></section>
+      <section><b>내 차례</b><p>타일을 한 장 뽑고 상대의 숨은 타일과 숫자 또는 하이픈을 추리합니다. 맞히면 계속하거나 멈출 수 있습니다.</p></section>
+      <section><b>오답과 승리</b><p>틀리면 이번에 뽑은 타일이 공개됩니다. 상대의 모든 타일을 공개시키고 마지막까지 암호를 지킨 참가자가 승리합니다.</p></section>
+    </div>
+  </div>
 </div>
 
 <script src="assets/firebase-config.js"></script>
@@ -600,6 +764,13 @@ button.code-tile:disabled { cursor:default; }
   const spectate=params.get('spectate')==='1';
   const board=document.getElementById('board');
   const aiBtn=document.getElementById('aiAssistToggle');
+  const rulesBtn=document.getElementById('codeRulesBtn');
+  const rulesModal=document.getElementById('codeRulesModal');
+  const closeRules=()=>rulesModal.classList.add('hidden');
+  rulesBtn?.addEventListener('click',()=>rulesModal.classList.remove('hidden'));
+  document.getElementById('codeRulesClose')?.addEventListener('click',closeRules);
+  rulesModal?.addEventListener('click',(e)=>{if(e.target===rulesModal)closeRules();});
+  document.addEventListener('keydown',(e)=>{if(e.key==='Escape')closeRules();});
   if(!roomId){board.innerHTML='<div class="empty-state">자료실 코드가 없습니다.<br><a class="btn" href="index.html">자료실 목록</a></div>';return;}
   document.getElementById('roomLabel').textContent='자료실 코드 '+roomId;
 
@@ -607,8 +778,17 @@ button.code-tile:disabled { cursor:default; }
   const isAuto=p=>!!(p&&(p.bot||p.aiAssist));
   const isHost=r=>r?.host===Core.me?.id;
   const mod=(n,m)=>((n%m)+m)%m;
+  const isHyphen=t=>!!(t&&(t.hyphen||String(t.num)==='-'));
+  const displayTileValue=t=>isHyphen(t)?'−':String(t.num);
   const tileKey=t=>Number(t.num)*2+(t.color==='black'?0:1);
-  const sortTiles=tiles=>(tiles||[]).sort((a,b)=>tileKey(a)-tileKey(b));
+  function sortTiles(tiles){
+    const list=tiles||[];
+    const hyphens=list.map((tile,index)=>isHyphen(tile)?{tile,index}:null).filter(Boolean);
+    const numbers=list.filter(t=>!isHyphen(t)).sort((a,b)=>tileKey(a)-tileKey(b));
+    hyphens.forEach(({tile,index})=>numbers.splice(Math.min(index,numbers.length),0,tile));
+    list.splice(0,list.length,...numbers);
+    return list;
+  }
   const hiddenCount=p=>(p?.codeTiles||[]).filter(t=>!t.revealed).length;
   const revealedCount=p=>(p?.codeTiles||[]).filter(t=>!!t.revealed).length;
   const activePlayers=r=>seatedList(r).filter(p=>!p.eliminated&&hiddenCount(p)>0);
@@ -623,14 +803,24 @@ button.code-tile:disabled { cursor:default; }
   }
   function buildPool(seed){
     const tiles=[];
-    for(const color of ['black','white'])for(let num=0;num<=11;num++)tiles.push({id:`${color[0]}${num}_${Core.uid(4)}`,color,num,revealed:false});
+    for(const color of ['black','white']){
+      for(let num=0;num<=11;num++)tiles.push({id:`${color[0]}${num}_${Core.uid(4)}`,color,num,revealed:false});
+      tiles.push({id:`${color[0]}dash_${Core.uid(4)}`,color,num:'-',hyphen:true,revealed:false});
+    }
     return Core.shuffle(tiles,Core.mulberry32(seed));
   }
   function seededIndex(r,length){r.randomStep=(r.randomStep||0)+1;const rng=Core.mulberry32(((r.seed||1)+(r.randomStep*2654435761))>>>0);return Math.floor(rng()*Math.max(1,length));}
   function insertTile(player,tile,revealed){
     const placed={...tile,revealed:!!revealed};
     player.codeTiles=player.codeTiles||[];
-    player.codeTiles.push(placed);sortTiles(player.codeTiles);
+    if(isHyphen(placed)){
+      const hash=Array.from(String(placed.id)).reduce((n,ch)=>(n+ch.charCodeAt(0))>>>0,0);
+      const pos=hash%(player.codeTiles.length+1);
+      player.codeTiles.splice(pos,0,placed);
+    }else{
+      player.codeTiles.push(placed);
+      sortTiles(player.codeTiles);
+    }
     return placed;
   }
   function markEliminated(r){
@@ -659,6 +849,7 @@ button.code-tile:disabled { cursor:default; }
     const faceVisible=!!(opts.visible||tile.revealed);
     const publiclyRevealed=!!tile.revealed;
     const classes=['code-tile',tile.color,faceVisible?'face-up':'concealed'];
+    if(isHyphen(tile))classes.push('hyphen');
 
     if(publiclyRevealed)classes.push('revealed');
     if(opts.selected)classes.push('selected');
@@ -669,14 +860,14 @@ button.code-tile:disabled { cursor:default; }
     if(recent)classes.push('just-revealed');
 
     const inner=faceVisible
-      ? `<span class="num">${tile.num}</span><span class="color-label">${tile.color==='black'?'BLACK':'WHITE'}</span>`
+      ? `<span class="num">${displayTileValue(tile)}</span><span class="color-label">${tile.color==='black'?'BLACK':'WHITE'}</span>`
       : `<span class="hidden-label">?</span><span class="color-label">${tile.color==='black'?'BLACK':'WHITE'}</span>`;
 
     if(opts.button){
       return`<button type="button" class="${classes.join(' ')}"
         data-target-player="${opts.playerId}" data-target-tile="${tile.id}"
         ${opts.disabled?'disabled':''}
-        aria-label="${faceVisible?tile.num+'번 타일':(tile.color==='black'?'검정':'흰색')+' 숨은 타일'}">${inner}</button>`;
+        aria-label="${faceVisible?(isHyphen(tile)?'하이픈 타일':tile.num+'번 타일'):(tile.color==='black'?'검정':'흰색')+' 숨은 타일'}">${inner}</button>`;
     }
 
     return`<div class="${classes.join(' ')}">${inner}</div>`;
@@ -704,7 +895,7 @@ button.code-tile:disabled { cursor:default; }
     Core.onRoom(roomId,r=>{
       if(!r){board.innerHTML='<div class="empty-state">자료실이 삭제되었습니다.</div>';return;}
       const ps=seatedList(r),cur=currentPlayer(r);
-      board.innerHTML=`<div class="code-result"><h2>관리자 관전</h2><p>${Core.esc(r.title||'다빈치 코드')}</p><div class="code-rank">${ps.map(p=>`<div class="code-rank-row"><span><b>${Core.esc(p.name)}</b>${p.id===cur?.id?' · 현재 차례':''}</span><span>${(p.codeTiles||[]).map(t=>`${t.color==='black'?'B':'W'}${t.num}${t.revealed?'✓':''}`).join(' ')||'대기'}</span></div>`).join('')}</div><a class="btn btn-primary" href="index.html">자료실 목록</a></div>`;
+      board.innerHTML=`<div class="code-result"><h2>관리자 관전</h2><p>${Core.esc(r.title||'다빈치 코드')}</p><div class="code-rank">${ps.map(p=>`<div class="code-rank-row"><span><b>${Core.esc(p.name)}</b>${p.id===cur?.id?' · 현재 차례':''}</span><span>${(p.codeTiles||[]).map(t=>`${t.color==='black'?'B':'W'}${isHyphen(t)?'-':t.num}${t.revealed?'✓':''}`).join(' ')||'대기'}</span></div>`).join('')}</div><a class="btn btn-primary" href="index.html">자료실 목록</a></div>`;
     });return;
   }
 
@@ -720,30 +911,71 @@ button.code-tile:disabled { cursor:default; }
     if(actionBusy)return;actionBusy=true;let started=false;
     try{await Core.updateRoom(roomId,r=>{
       const ps=seatedList(r);if(ps.length<2||ps.length>4||ps.some(p=>!p.ready))return false;
-      const pool=buildPool(r.seed||Math.floor(Math.random()*2147483647));const count=ps.length===4?3:4;
-      ps.forEach(p=>{p.codeTiles=[];p.eliminated=false;p.ready=false;delete p.eliminatedAt;for(let i=0;i<count;i++)p.codeTiles.push(pool.pop());sortTiles(p.codeTiles);});
-      r.pool=pool;r.phase='playing';r.randomStep=0;r.wrongGuesses={};r.lastReveal=null;r.eliminatedOrder=[];r.lastAction='암호 타일 배정이 완료되었습니다.';r.startedAt=Core.now();
-      beginTurn(r,seededIndex(r,ps.length));started=true;
-    });if(started)Core.sys(roomId,'다빈치 코드 암호 해독이 시작되었습니다.');}finally{actionBusy=false;}
+      const seed=r.seed||Math.floor(Math.random()*2147483647);
+      const pool=buildPool(seed);const count=ps.length===4?3:4;
+      ps.forEach(p=>{
+        p.codeTiles=[];p.eliminated=false;p.ready=false;delete p.eliminatedAt;delete p.orderChip;
+        for(let i=0;i<count;i++)p.codeTiles.push(pool.pop());
+        sortTiles(p.codeTiles);
+      });
+      const values=Core.shuffle(ps.map((_,i)=>i+1),Core.mulberry32((seed+9277)>>>0));
+      r.orderChips=values.map((value,i)=>({id:`order_${i}_${Core.uid(3)}`,value,takenBy:null}));
+      r.orderRevealed=false;r.orderRevealUntil=null;r.orderWinner=null;
+      r.pool=pool;r.phase='order';r.randomStep=0;r.wrongGuesses={};r.lastReveal=null;r.eliminatedOrder=[];
+      r.lastAction='시작 순서 칩을 하나씩 선택하세요.';delete r.startedAt;started=true;
+    });if(started)Core.sys(roomId,'시작 순서 칩 선택이 시작되었습니다.');}finally{actionBusy=false;}
+  }
+
+  function finalizeOrderIfReady(r){
+    const ps=seatedList(r);
+    if(!ps.length||r.orderRevealed||ps.some(p=>p.orderChip==null))return;
+    const winner=ps.slice().sort((a,b)=>Number(b.orderChip)-Number(a.orderChip))[0];
+    r.orderRevealed=true;r.orderWinner=winner.id;r.orderRevealUntil=Core.now()+1900;
+    r.lastAction=`${winner.name}님이 가장 높은 ${winner.orderChip}번 칩을 뽑았습니다.`;
+  }
+
+  async function pickOrderChip(chipId,actorId=Core.me.id){
+    await Core.updateRoom(roomId,r=>{
+      if(r.phase!=='order'||r.orderRevealed)return false;
+      const player=r.players?.[actorId];if(!player||player.orderChip!=null)return false;
+      const available=(r.orderChips||[]).filter(c=>!c.takenBy);
+      if(!available.length)return false;
+      const chip=available.find(c=>c.id===chipId)||available[0];
+      chip.takenBy=player.id;player.orderChip=chip.value;
+      r.lastAction=`${player.name}님이 시작 순서 칩을 선택했습니다.`;
+      finalizeOrderIfReady(r);
+    });
+  }
+
+  async function beginOrderedGame(){
+    await Core.updateRoom(roomId,r=>{
+      if(r.phase!=='order'||!r.orderRevealed||Number(r.orderRevealUntil||0)>Core.now())return false;
+      const ps=seatedList(r),winnerIndex=ps.findIndex(p=>p.id===r.orderWinner);
+      r.phase='playing';r.startedAt=Core.now();
+      beginTurn(r,winnerIndex<0?0:winnerIndex);
+      const winner=r.players?.[r.orderWinner];
+      r.lastAction=`${winner?.name||'첫 참가자'}님부터 암호 해독을 시작합니다.`;
+    });
   }
   async function drawTile(){
     if(actionBusy)return;actionBusy=true;
     try{await Core.updateRoom(roomId,r=>{const cur=currentPlayer(r);if(r.phase!=='playing'||r.step!=='draw'||cur?.id!==Core.me.id||!(r.pool||[]).length)return false;const tile=r.pool.pop();r.pendingDraw={ownerId:cur.id,tile};r.step='guess';r.lastAction=`${cur.name}님이 타일 1개를 확인했습니다.`;});}finally{actionBusy=false;}
   }
-  async function submitGuess(number,actorId=Core.me.id,targetId=selected.playerId,tileId=selected.tileId){
+  async function submitGuess(guess,actorId=Core.me.id,targetId=selected.playerId,tileId=selected.tileId){
     if(actionBusy||targetId==null||tileId==null)return;actionBusy=true;
+    const guessValue=String(guess);
     try{await Core.updateRoom(roomId,r=>{
       if(r.phase!=='playing'||r.step!=='guess')return false;
       const actor=currentPlayer(r),target=r.players?.[targetId];if(!actor||actor.id!==actorId||!target||target.eliminated||target.id===actor.id)return false;
       const tile=(target.codeTiles||[]).find(t=>t.id===tileId);if(!tile||tile.revealed)return false;
       r.wrongGuesses=r.wrongGuesses||{};r.wrongGuesses[tile.id]=Array.isArray(r.wrongGuesses[tile.id])?r.wrongGuesses[tile.id]:[];
-      if(Number(tile.num)===Number(number)){
-        tile.revealed=true;r.guessStreak=(r.guessStreak||0)+1;r.lastReveal={tileId:tile.id,targetId:target.id,number:Number(number),correct:true,at:Core.now()};r.lastAction=`${actor.name}님이 ${target.name}님의 ${number}을 맞혔습니다.`;markEliminated(r);
+      if(String(tile.num)===guessValue){
+        tile.revealed=true;r.guessStreak=(r.guessStreak||0)+1;r.lastReveal={tileId:tile.id,targetId:target.id,number:guessValue,correct:true,at:Core.now()};r.lastAction=`${actor.name}님이 ${target.name}님의 ${guessValue}을 맞혔습니다.`;markEliminated(r);
         if(checkOver(r))return;
         r.step='decision';r.awaitDecision=true;
       }else{
-        if(!r.wrongGuesses[tile.id].includes(Number(number)))r.wrongGuesses[tile.id].push(Number(number));
-        r.lastReveal={tileId:tile.id,targetId:target.id,number:Number(number),correct:false,at:Core.now()};
+        if(!r.wrongGuesses[tile.id].map(String).includes(guessValue))r.wrongGuesses[tile.id].push(guessValue);
+        r.lastReveal={tileId:tile.id,targetId:target.id,number:guessValue,correct:false,at:Core.now()};
         if(r.pendingDraw&&r.pendingDraw.ownerId===actor.id){const shown=insertTile(actor,r.pendingDraw.tile,true);r.lastReveal.penaltyTileId=shown.id;r.pendingDraw=null;r.lastAction=`${actor.name}님의 추리가 빗나가 뽑은 타일이 공개되었습니다.`;}else r.lastAction=`${actor.name}님의 추리가 빗나갔습니다.`;
         finishTurn(r);
       }
@@ -763,17 +995,18 @@ button.code-tile:disabled { cursor:default; }
     return set;
   }
   function candidateNumbers(r,observerId,target,tile){
-    const known=knownPairs(r,observerId),wrong=new Set((r.wrongGuesses?.[tile.id]||[]).map(Number));
+    const known=knownPairs(r,observerId),wrong=new Set((r.wrongGuesses?.[tile.id]||[]).map(String));
     const idx=(target.codeTiles||[]).findIndex(t=>t.id===tile.id);let low=-1,high=24;
-    for(let i=idx-1;i>=0;i--){const t=target.codeTiles[i];if(t.revealed){low=tileKey(t);break;}}
-    for(let i=idx+1;i<target.codeTiles.length;i++){const t=target.codeTiles[i];if(t.revealed){high=tileKey(t);break;}}
+    for(let i=idx-1;i>=0;i--){const t=target.codeTiles[i];if(t.revealed&&!isHyphen(t)){low=tileKey(t);break;}}
+    for(let i=idx+1;i<target.codeTiles.length;i++){const t=target.codeTiles[i];if(t.revealed&&!isHyphen(t)){high=tileKey(t);break;}}
     const out=[];
     for(let n=0;n<=11;n++){
       const key=n*2+(tile.color==='black'?0:1);
-      if(key<=low||key>=high||wrong.has(n)||known.has(tile.color+':'+n))continue;
-      out.push(n);
+      if(key<=low||key>=high||wrong.has(String(n))||known.has(tile.color+':'+n))continue;
+      out.push(String(n));
     }
-    return out.length?out:Array.from({length:12},(_,i)=>i).filter(n=>!wrong.has(n));
+    if(!wrong.has('-')&&!known.has(tile.color+':-'))out.push('-');
+    return out.length?out:Array.from({length:12},(_,i)=>String(i)).concat('-').filter(n=>!wrong.has(String(n)));
   }
   function chooseAiGuess(r,actor){
     const targets=activePlayers(r).filter(p=>p.id!==actor.id);let best=null;
@@ -788,7 +1021,24 @@ button.code-tile:disabled { cursor:default; }
   }
   function scheduleAuto(delay,fn){if(botTimer)return;botTimer=setTimeout(async()=>{botTimer=null;try{await fn();}catch(e){console.error(e);}},delay);}
   function maybeAuto(){
-    if(!room||room.phase!=='playing'||!isHost(room)||botTimer)return;
+    if(!room||!isHost(room)||botTimer)return;
+    if(room.phase==='order'){
+      if(room.orderRevealed){
+        const wait=Math.max(100,Number(room.orderRevealUntil||0)-Core.now());
+        scheduleAuto(wait,beginOrderedGame);
+        return;
+      }
+      const autoPlayer=seatedList(room).find(p=>isAuto(p)&&p.orderChip==null);
+      if(autoPlayer){
+        const available=(room.orderChips||[]).filter(c=>!c.takenBy);
+        if(available.length){
+          const chip=available[seededIndex(room,available.length)];
+          scheduleAuto(500,()=>pickOrderChip(chip.id,autoPlayer.id));
+        }
+      }
+      return;
+    }
+    if(room.phase!=='playing')return;
     const cur=currentPlayer(room);if(!isAuto(cur))return;
     if(room.step==='draw'){
       scheduleAuto(700,()=>Core.updateRoom(roomId,r=>{const p=currentPlayer(r);if(r.phase!=='playing'||r.step!=='draw'||!isAuto(p)||(r.pool||[]).length===0)return false;r.pendingDraw={ownerId:p.id,tile:r.pool.pop()};r.step='guess';r.lastAction=`${p.name}님이 타일 1개를 확인했습니다.`;}));
@@ -802,20 +1052,45 @@ button.code-tile:disabled { cursor:default; }
   }
 
   function renderLobby(r){
-    const ps=seatedList(r),ready=ps.filter(p=>p.ready).length,can=isHost(r)&&ps.length>=2&&ps.length<=4&&ready===ps.length;
-    board.innerHTML=`<div class="lobby"><div class="eyebrow">CODE BREAKING</div><h2>다빈치 코드</h2><p class="lede">흑·백 숫자 타일을 낮은 순서로 정렬하고 상대의 숨은 암호를 추리하세요.</p><div class="lobby-players">${ps.map(p=>`<div class="lobby-row"><div class="avatar">${Core.esc(Core.initials(p.name))}</div><div style="flex:1"><b>${Core.esc(p.name)}</b><div class="muted">${Core.esc(p.dept||'—')}</div></div>${p.id===r.host?'<span class="badge host">개설자</span>':''}${p.ready?'<span class="badge ready">준비</span>':'<span class="badge">대기</span>'}${isHost(r)&&p.id!==r.host?`<button class="lobby-remove" data-kick="${p.id}" title="강퇴">×</button>`:''}</div>`).join('')}</div><div class="lobby-actions"><button class="btn ${r.players[Core.me.id]?.ready?'':'btn-primary'}" id="btnReady">${r.players[Core.me.id]?.ready?'준비 취소':'준비 완료'}</button><button class="btn btn-ghost" id="btnCopy">🔗 초대 링크 복사</button>${isHost(r)?`<button class="btn btn-bot" id="btnBot" ${ps.length>=Math.min(4,r.maxSeats||4)?'disabled':''}>봇 추가 · 유료</button><button class="btn btn-primary" id="btnStart" ${can?'':'disabled'}>게임 시작 ${ps.length<2?'(2명 필요)':`(${ready}/${ps.length} 준비)`}</button>`:''}</div></div>`;
+    const ps=seatedList(r),ready=ps.filter(p=>p.ready).length,maxSeats=Math.min(4,r.maxSeats||4);
+    const can=isHost(r)&&ps.length>=2&&ps.length<=4&&ready===ps.length;
+    board.innerHTML=`<div class="lobby">
+      <div class="lobby-summary">
+        <div class="lobby-meta"><span>암호 해독 대기</span><span>CODE ${Core.esc(r.id||roomId)}</span></div>
+        <div class="lobby-title-row"><h2>${Core.esc(r.title||'다빈치 코드')}</h2><span>2~4인</span></div>
+        <p class="lobby-description">모두 준비한 뒤 시작 순서 칩을 고릅니다. 최고 숫자를 뽑은 참가자가 먼저 시작합니다.</p>
+      </div>
+      <div class="lobby-players">
+        ${ps.map(p=>`<div class="lobby-row"><div class="avatar">${Core.esc(Core.initials(p.name))}</div><div style="flex:1;min-width:0"><div style="font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${Core.esc(p.name)}</div><div class="mono muted" style="font-size:11px">${Core.esc(p.dept||'—')}</div></div>${p.id===r.host?'<span class="badge host">개설자</span>':''}${p.ready?'<span class="badge ready">준비</span>':'<span class="badge">대기</span>'}${isHost(r)&&p.id!==r.host?`<button class="lobby-remove" data-kick="${p.id}" data-kick-name="${Core.esc(p.name)}" title="참가자 내보내기" aria-label="${Core.esc(p.name)} 내보내기">×</button>`:''}</div>`).join('')}
+        ${Array.from({length:Math.max(0,maxSeats-ps.length)}).map(()=>`<div class="lobby-row" style="opacity:.4"><div class="avatar" style="background:var(--ink-3);color:var(--cream-dim)">·</div><div style="flex:1" class="muted">빈 자리</div></div>`).join('')}
+      </div>
+      <div class="lobby-actions">
+        <button class="btn ${r.players[Core.me.id]?.ready?'':'btn-primary'}" id="btnReady">${r.players[Core.me.id]?.ready?'준비 취소':'준비 완료'}</button>
+        <button class="btn btn-ghost" id="btnCopy">🔗 초대 링크 복사</button>
+        ${isHost(r)?`<button class="btn btn-bot" id="btnBot" ${ps.length>=maxSeats?'disabled':''}>봇 추가 · 유료</button><button class="btn btn-primary" id="btnStart" ${can?'':'disabled'}>게임 시작 ${ps.length<2?'(2명 필요)':`(${ready}/${ps.length} 준비)`}</button>`:''}
+      </div>
+      <div class="lobby-summary" style="margin-top:12px"><div class="lobby-meta"><span>변형 규칙</span><span>HYPHEN MODE</span></div><p class="lobby-description">검정·흰색 하이픈(-) 타일이 한 장씩 포함됩니다. 자세한 내용은 상단 ? 버튼에서 확인하세요.</p></div>
+    </div>`;
     document.getElementById('btnReady')?.addEventListener('click',()=>Core.updateRoom(roomId,rr=>{const p=rr.players[Core.me.id];if(p)p.ready=!p.ready;}));
     document.getElementById('btnCopy')?.addEventListener('click',()=>Core.copyInviteLink(roomId));
     document.getElementById('btnBot')?.addEventListener('click',async()=>{if(await Core.requestBotAccess())addBot();});
     document.getElementById('btnStart')?.addEventListener('click',startGame);
-    board.querySelectorAll('[data-kick]').forEach(b=>b.addEventListener('click',()=>{if(!confirm('이 참가자를 강퇴하시겠습니까?'))return;Core.updateRoom(roomId,rr=>{if(rr.host!==Core.me.id)return false;delete rr.players[b.dataset.kick];seatedList(rr).forEach((p,i)=>p.seat=i);});}));
+    board.querySelectorAll('[data-kick]').forEach(b=>b.addEventListener('click',()=>{const name=b.dataset.kickName||'이 참가자';if(!confirm(`${name}님을 이 방에서 강퇴하시겠습니까?`))return;Core.updateRoom(roomId,rr=>{if(rr.host!==Core.me.id)return false;delete rr.players[b.dataset.kick];seatedList(rr).forEach((p,i)=>p.seat=i);});}));
+  }
+
+  function renderOrder(r){
+    const ps=seatedList(r),me=r.players[Core.me.id],picked=me?.orderChip!=null,revealed=!!r.orderRevealed;
+    const winner=r.players?.[r.orderWinner];
+    board.innerHTML=`<div class="code-order-stage"><div class="eyebrow">START ORDER</div><h2>${revealed?`${Core.esc(winner?.name||'참가자')}님부터 시작합니다`:'시작 순서 칩을 선택하세요'}</h2><p>${revealed?'가장 높은 칩이 공개되었습니다. 잠시 후 게임을 시작합니다.':'한 사람당 하나씩 선택하며, 가장 높은 숫자가 첫 차례입니다.'}</p><div class="code-order-chips">${(r.orderChips||[]).map(chip=>{const mine=chip.takenBy===Core.me.id;const taken=!!chip.takenBy;const label=revealed?chip.value:(mine?'✓':'?');return `<button type="button" class="code-order-chip ${taken?'taken':''} ${mine?'mine':''} ${revealed?'revealed':''}" data-order-chip="${chip.id}" ${(taken||picked||revealed)?'disabled':''}>${label}</button>`;}).join('')}</div><div class="code-order-people">${ps.map(p=>`<div class="code-order-person"><div class="avatar">${Core.esc(Core.initials(p.name))}</div><div><b>${Core.esc(p.name)}</b><small>${p.orderChip!=null?(revealed?'선택한 칩 공개':'칩 선택 완료'):'선택 대기'}</small></div><span class="code-order-value ${revealed&&p.id===r.orderWinner?'high':''}">${revealed&&p.orderChip!=null?p.orderChip:(p.orderChip!=null?'✓':'—')}</span></div>`).join('')}</div></div>`;
+    board.querySelectorAll('[data-order-chip]').forEach(b=>b.addEventListener('click',()=>pickOrderChip(b.dataset.orderChip)));
+    Core.actionAlert(roomId,!picked&&!revealed?'order-chip':'',!picked?'시작 순서 칩을 선택하세요.':'');
   }
   function renderGame(r){
     const ps=seatedList(r),cur=currentPlayer(r),me=r.players[Core.me.id],myTurn=cur?.id===Core.me.id&&!me?.eliminated,canPick=myTurn&&r.step==='guess',targetTile=selected.tileId?ps.flatMap(p=>(p.codeTiles||[]).map(t=>({p,t}))).find(x=>x.t.id===selected.tileId):null;
     const hiddenTotal=ps.reduce((n,p)=>n+hiddenCount(p),0),pendingMine=r.pendingDraw?.ownerId===Core.me.id?r.pendingDraw.tile:null;
     const pendingFresh=!!(pendingMine&&pendingMine.id!==renderedPendingId);
     const stepTitle=r.step==='draw'?(myTurn?'타일을 한 개 뽑으세요':`${Core.esc(cur?.name||'-')}님이 타일을 뽑는 중`):r.step==='decision'?(myTurn?'정답입니다. 계속 추리할까요?':`${Core.esc(cur?.name||'-')}님이 계속할지 결정 중`):(myTurn?'상대의 숨은 숫자를 추리하세요':`${Core.esc(cur?.name||'-')}님의 추리 차례`);
-    board.innerHTML=`<div class="code-stage"><div class="code-status"><div><span>현재 차례</span><b>${Core.esc(cur?.name||'-')}</b></div><div><span>남은 타일</span><b>${(r.pool||[]).length}개</b></div><div><span>숨은 암호</span><b>${hiddenTotal}개</b></div><div><span>내 미공개 타일</span><b>${hiddenCount(me)}개</b></div></div><div class="code-layout"><section class="code-main"><div class="code-turn"><h2>${stepTitle}</h2><p>${Core.esc(r.lastAction||'상대의 암호를 해독하세요.')}</p></div><div class="code-players">${ps.filter(p=>p.id!==Core.me.id).map(p=>`<article class="code-row ${p.id===cur?.id?'current':''} ${p.eliminated?'eliminated':''}"><div class="code-row-head"><div class="code-row-name"><div class="avatar">${Core.esc(Core.initials(p.name))}</div><div><b>${Core.esc(p.name)}</b><div class="code-row-meta"><small>미공개 ${hiddenCount(p)}개</small>${revealedCount(p)?`<span class="public-state">공개 ${revealedCount(p)}개</span>`:''}</div></div></div><div class="code-badges">${p.bot||p.aiAssist?'<span class="code-badge ai">AI</span>':''}${p.eliminated?'<span class="code-badge out">암호 해독 완료</span>':''}</div></div><div class="code-tiles">${(p.codeTiles||[]).map(t=>publicTileHtml(t,p.id,canPick&&!p.eliminated)).join('')}</div>${selected.playerId===p.id&&selected.tileId?`<div class="code-wrong-list">이 타일에서 틀린 숫자: ${(r.wrongGuesses?.[selected.tileId]||[]).join(', ')||'없음'}</div>`:''}</article>`).join('')}</div>${r.step==='draw'&&myTurn?`<div class="code-draw-area"><button class="btn btn-primary code-draw-btn" id="btnDraw">타일 1개 뽑기</button></div>`:''}${r.step==='guess'&&myTurn?`<div class="code-guess-panel"><h3>${targetTile?`${Core.esc(targetTile.p.name)}님의 ${targetTile.t.color==='black'?'검정':'흰색'} 타일 선택됨`:'먼저 상대의 숨은 타일을 선택하세요'}</h3><p>선택한 타일의 숫자를 추리하세요.</p><div class="code-numbers">${Array.from({length:12},(_,n)=>`<button class="code-number" data-guess="${n}" ${!targetTile||(r.wrongGuesses?.[selected.tileId]||[]).includes(n)?'disabled':''}>${n}</button>`).join('')}</div></div>`:''}${r.step==='decision'&&myTurn?`<div class="code-decision"><strong>${r.guessStreak||1}개 연속 정답</strong><button class="btn btn-primary" id="btnContinue">계속 추리</button><button class="btn" id="btnStop">여기서 멈추기</button></div>`:''}</section><aside class="code-side"><div class="code-side-card"><h3>내 암호</h3><div class="code-my-tiles">${(me.codeTiles||[]).map(t=>tileHtml(t,{visible:true})).join('')}</div></div><div class="code-side-card"><h3>이번에 뽑은 타일</h3><div class="code-pending">${pendingMine?`${tileHtml(pendingMine,{visible:true,fresh:pendingFresh})}<p class="code-pending-note">추리를 멈추면 내 암호에 추가되고, 틀리면 공개됩니다.</p>`:`<p>${r.pendingDraw?'상대가 타일을 확인 중입니다.':'아직 뽑은 타일이 없습니다.'}</p>`}</div></div><div class="code-side-card"><h3>정렬 규칙</h3><p>왼쪽에서 오른쪽으로 숫자가 커집니다.<br>같은 숫자는 검정 타일이 흰색 타일보다 먼저 놓입니다.<br><br>정답이면 계속하거나 멈출 수 있고, 오답이면 이번에 뽑은 타일이 공개됩니다.</p></div></aside></div></div>`;
+    board.innerHTML=`<div class="code-stage"><div class="code-info-strip"><span>남은 타일<b>${(r.pool||[]).length}</b></span><span>숨은 암호<b>${hiddenTotal}</b></span><span>내 미공개<b>${hiddenCount(me)}</b></span><span>차례<b>${Core.esc(cur?.name||'-')}</b></span></div><div class="code-layout"><section class="code-main"><div class="code-turn"><h2>${stepTitle}</h2><p>${Core.esc(r.lastAction||'상대의 암호를 해독하세요.')}</p></div><div class="code-players">${ps.filter(p=>p.id!==Core.me.id).map(p=>`<article class="code-row ${p.id===cur?.id?'current':''} ${p.eliminated?'eliminated':''}"><div class="code-row-head"><div class="code-row-name"><div class="avatar">${Core.esc(Core.initials(p.name))}</div><div><b>${Core.esc(p.name)}</b><div class="code-row-meta"><small>미공개 ${hiddenCount(p)}개</small>${revealedCount(p)?`<span class="public-state">공개 ${revealedCount(p)}개</span>`:''}</div></div></div><div class="code-badges">${p.bot||p.aiAssist?'<span class="code-badge ai">AI</span>':''}${p.eliminated?'<span class="code-badge out">암호 해독 완료</span>':''}</div></div><div class="code-tiles">${(p.codeTiles||[]).map(t=>publicTileHtml(t,p.id,canPick&&!p.eliminated)).join('')}</div>${selected.playerId===p.id&&selected.tileId?`<div class="code-wrong-list">이 타일에서 틀린 숫자: ${(r.wrongGuesses?.[selected.tileId]||[]).join(', ')||'없음'}</div>`:''}</article>`).join('')}</div>${r.step==='draw'&&myTurn?`<div class="code-draw-area"><button class="btn btn-primary code-draw-btn" id="btnDraw">타일 1개 뽑기</button></div>`:''}${r.step==='guess'&&myTurn?`<div class="code-guess-panel"><h3>${targetTile?`${Core.esc(targetTile.p.name)}님의 ${targetTile.t.color==='black'?'검정':'흰색'} 타일 선택됨`:'먼저 상대의 숨은 타일을 선택하세요'}</h3><p>선택한 타일의 숫자를 추리하세요.</p><div class="code-numbers">${Array.from({length:12},(_,n)=>String(n)).concat('-').map(value=>`<button class="code-number ${value==='-'?'hyphen-guess':''}" data-guess="${value}" ${!targetTile||(r.wrongGuesses?.[selected.tileId]||[]).map(String).includes(String(value))?'disabled':''}>${value}</button>`).join('')}</div></div>`:''}${r.step==='decision'&&myTurn?`<div class="code-decision"><strong>${r.guessStreak||1}개 연속 정답</strong><button class="btn btn-primary" id="btnContinue">계속 추리</button><button class="btn" id="btnStop">여기서 멈추기</button></div>`:''}</section><aside class="code-side"><div class="code-side-card"><h3>내 암호</h3><div class="code-my-tiles">${(me.codeTiles||[]).map(t=>tileHtml(t,{visible:true})).join('')}</div></div><div class="code-side-card"><h3>이번에 뽑은 타일</h3><div class="code-pending">${pendingMine?`${tileHtml(pendingMine,{visible:true,fresh:pendingFresh})}<p class="code-pending-note">멈추면 내 암호에 추가되고, 틀리면 공개됩니다.</p>`:`<p>${r.pendingDraw?'상대가 타일을 확인 중입니다.':'아직 뽑은 타일이 없습니다.'}</p>`}</div></div></aside></div></div>`;
     renderedPendingId=pendingMine?.id||null;
 
     board.querySelectorAll('[data-target-tile]').forEach(b=>b.addEventListener('click',()=>{
@@ -824,7 +1099,7 @@ button.code-tile:disabled { cursor:default; }
       render(room);
     }));
 
-    board.querySelectorAll('[data-guess]').forEach(b=>b.addEventListener('click',()=>submitGuess(Number(b.dataset.guess))));
+    board.querySelectorAll('[data-guess]').forEach(b=>b.addEventListener('click',()=>submitGuess(b.dataset.guess)));
     document.getElementById('btnDraw')?.addEventListener('click',drawTile);document.getElementById('btnContinue')?.addEventListener('click',()=>continueGuess());document.getElementById('btnStop')?.addEventListener('click',()=>stopGuess());
     Core.actionAlert(roomId,myTurn?`turn:${cur?.id}:${r.step}`:'',myTurn?'내 차례입니다. 암호를 추리하세요.':'');
   }
@@ -832,7 +1107,7 @@ button.code-tile:disabled { cursor:default; }
     const ps=seatedList(r),winner=r.players[r.winner],elims=(r.eliminatedOrder||[]).map(id=>r.players[id]).filter(Boolean);
     board.innerHTML=`<div class="code-result"><div class="eyebrow">CODE COMPLETE</div><h2>암호 해독 완료</h2><div class="code-winner"><b>최종 승리 · ${Core.esc(winner?.name||'승자 없음')}</b><p>마지막까지 공개되지 않은 암호를 지켰습니다.</p></div><div class="code-rank">${winner?`<div class="code-rank-row win"><span>1위 · <b>${Core.esc(winner.name)}</b></span><span>미공개 ${hiddenCount(winner)}개</span></div>`:''}${elims.slice().reverse().map((p,i)=>`<div class="code-rank-row"><span>${i+2}위 · <b>${Core.esc(p.name)}</b></span><span>전체 공개</span></div>`).join('')}</div><div class="modal-actions"><button class="btn" id="btnLeaveAfterGame">자료실 목록으로</button>${isHost(r)?'<button class="btn btn-primary" id="btnRestart">다시 시작</button>':''}</div></div>`;
     document.getElementById('btnLeaveAfterGame')?.addEventListener('click',async()=>{sessionStorage.setItem('table9:suppressRejoinOnce','1');await Core.leaveRoom(roomId).catch(()=>{});location.href='index.html';});
-    document.getElementById('btnRestart')?.addEventListener('click',()=>Core.updateRoom(roomId,rr=>{rr.phase='lobby';['pool','pendingDraw','turn','step','guessStreak','awaitDecision','wrongGuesses','lastReveal','eliminatedOrder','winner','lastAction','finishedAt','randomStep'].forEach(k=>delete rr[k]);Object.values(rr.players||{}).forEach(p=>{delete p.codeTiles;delete p.eliminated;delete p.eliminatedAt;p.ready=!!p.bot||!!p.aiAssist;});}));
+    document.getElementById('btnRestart')?.addEventListener('click',()=>Core.updateRoom(roomId,rr=>{rr.phase='lobby';['pool','pendingDraw','turn','step','guessStreak','awaitDecision','wrongGuesses','lastReveal','eliminatedOrder','winner','lastAction','finishedAt','randomStep','orderChips','orderRevealed','orderRevealUntil','orderWinner'].forEach(k=>delete rr[k]);Object.values(rr.players||{}).forEach(p=>{delete p.codeTiles;delete p.eliminated;delete p.eliminatedAt;delete p.orderChip;p.ready=!!p.bot||!!p.aiAssist;});}));
   }
   function render(r){
     paintAi(r);
@@ -841,12 +1116,13 @@ button.code-tile:disabled { cursor:default; }
     if(r.phase!=='playing')renderedPendingId=null;
 
     if(r.phase==='lobby')renderLobby(r);
+    else if(r.phase==='order')renderOrder(r);
     else if(r.phase==='playing')renderGame(r);
     else renderOver(r);
   }
 
   Core.onRoom(roomId,r=>{if(!r){room=null;board.innerHTML='<div class="empty-state">자료실이 삭제되었습니다.<br><a class="btn" href="index.html">목록으로</a></div>';return;}room=r;if(selected.tileId){const found=seatedList(r).some(p=>(p.codeTiles||[]).some(t=>t.id===selected.tileId&&!t.revealed));if(!found)selected={playerId:null,tileId:null};}render(r);maybeAuto();});
-  document.querySelector('[data-leave]').addEventListener('click',async()=>{if(!confirm('자료실에서 나가시겠습니까?'))return;sessionStorage.setItem('table9:suppressRejoinOnce','1');await Core.updateRoom(roomId,r=>{if(r.phase!=='playing')return;const p=r.players?.[Core.me.id];if(!p)return;(p.codeTiles||[]).forEach(t=>t.revealed=true);p.eliminated=true;markEliminated(r);if(currentPlayer(r)?.id===p.id)finishTurn(r);else checkOver(r);}).catch(()=>{});await Core.leaveRoom(roomId).catch(()=>{});location.href='index.html';});
+  document.querySelector('[data-leave]').addEventListener('click',async()=>{if(!confirm('자료실에서 나가시겠습니까?'))return;sessionStorage.setItem('table9:suppressRejoinOnce','1');await Core.updateRoom(roomId,r=>{if(r.phase==='order'){const p=r.players?.[Core.me.id];if(p?.orderChip!=null){const chip=(r.orderChips||[]).find(c=>c.takenBy===p.id);if(chip)chip.takenBy=null;delete p.orderChip;}return;}if(r.phase!=='playing')return;const p=r.players?.[Core.me.id];if(!p)return;(p.codeTiles||[]).forEach(t=>t.revealed=true);p.eliminated=true;markEliminated(r);if(currentPlayer(r)?.id===p.id)finishTurn(r);else checkOver(r);}).catch(()=>{});await Core.leaveRoom(roomId).catch(()=>{});location.href='index.html';});
   window.addEventListener('beforeunload',()=>{if(botTimer)clearTimeout(botTimer);});
 })();
 </script>

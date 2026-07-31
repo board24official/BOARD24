@@ -967,6 +967,72 @@
     white-space:nowrap;
   }
 }
+
+
+/* ---------- BANG 시작 카드 확인창 높이/확인 버튼 고정 ---------- */
+#initialHandModal {
+  padding: 10px !important;
+  align-items: center !important;
+  overflow: hidden !important;
+}
+#initialHandModal .initial-hand-modal {
+  width: min(760px, calc(100vw - 20px)) !important;
+  max-width: 760px !important;
+  max-height: calc(100dvh - 20px) !important;
+  display: flex !important;
+  flex-direction: column !important;
+  padding: 18px !important;
+  overflow: hidden !important;
+}
+#initialHandModal .initial-hand-modal h3,
+#initialHandModal .initial-hand-lede {
+  flex: 0 0 auto;
+}
+#initialHandModal .initial-hand-grid {
+  min-height: 0 !important;
+  max-height: calc(100dvh - 210px) !important;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  margin: 12px 0 !important;
+  padding: 2px 4px 10px 2px;
+  overflow-y: auto !important;
+  overscroll-behavior: contain;
+}
+#initialHandModal .initial-item {
+  min-height: 118px !important;
+  padding: 11px !important;
+}
+#initialHandModal .initial-confirm {
+  position: sticky !important;
+  bottom: 0 !important;
+  z-index: 3;
+  flex: 0 0 auto;
+  width: 100% !important;
+  min-height: 46px !important;
+  margin-top: 0 !important;
+  box-shadow: 0 -8px 18px rgba(255,255,255,.96);
+}
+@media (max-width: 700px) {
+  #initialHandModal { padding: 6px !important; align-items: flex-start !important; }
+  #initialHandModal .initial-hand-modal {
+    width: calc(100vw - 12px) !important;
+    max-height: calc(100dvh - 12px) !important;
+    padding: 12px !important;
+    border-radius: 12px !important;
+  }
+  #initialHandModal .initial-hand-lede { margin: 3px 0 4px !important; font-size: 9px !important; }
+  #initialHandModal .initial-hand-grid {
+    max-height: calc(100dvh - 165px) !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 7px !important;
+    margin: 7px 0 !important;
+  }
+  #initialHandModal .initial-item { min-height: 92px !important; padding: 8px !important; }
+  #initialHandModal .initial-item .initial-icon { margin: 6px 0 3px !important; font-size: 22px !important; }
+  #initialHandModal .initial-item h4 { font-size: 12px !important; }
+  #initialHandModal .initial-item p { font-size: 8px !important; line-height: 1.35 !important; }
+  #initialHandModal .initial-confirm { min-height: 44px !important; }
+}
+
 </style>
 
 <style id="pc-chat-bottom-activity-fix">
