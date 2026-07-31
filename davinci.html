@@ -764,6 +764,82 @@ button.code-tile:disabled { cursor:default; }
   .code-hyphen-preview .code-tile { width:66px; height:98px; }
 }
 
+
+/* ---------- 최근 추리 공개 표시 ---------- */
+.code-recent-guess {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  margin-top: 12px;
+  padding: 11px 13px;
+  border: 1px solid #d8e0ec;
+  border-radius: 11px;
+  background: #fff;
+  text-align: left;
+}
+.code-recent-guess .guess-label {
+  color: #7a8698;
+  font: 9px var(--f-mono);
+  letter-spacing: .06em;
+  white-space: nowrap;
+}
+.code-recent-guess .guess-copy {
+  min-width: 0;
+  color: #2a3446;
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.code-recent-guess .guess-copy b {
+  color: #1f2938;
+}
+.code-recent-guess .guess-number {
+  min-width: 62px;
+  padding: 6px 9px;
+  border-radius: 8px;
+  text-align: center;
+  font: 700 13px var(--f-mono);
+  white-space: nowrap;
+}
+.code-recent-guess.correct {
+  border-color: #bcdcc7;
+  background: #f4fbf6;
+}
+.code-recent-guess.correct .guess-number {
+  background: #dff3e5;
+  color: #23633d;
+}
+.code-recent-guess.wrong {
+  border-color: #efc8ce;
+  background: #fff7f8;
+}
+.code-recent-guess.wrong .guess-number {
+  background: #ffe5e9;
+  color: #ae3543;
+}
+@media (max-width: 860px) {
+  .code-recent-guess {
+    grid-template-columns: 1fr auto;
+    gap: 5px 8px;
+    margin-top: 8px;
+    padding: 9px 10px;
+  }
+  .code-recent-guess .guess-label {
+    grid-column: 1 / -1;
+    font-size: 8px;
+  }
+  .code-recent-guess .guess-copy {
+    font-size: 10px;
+  }
+  .code-recent-guess .guess-number {
+    min-width: 54px;
+    padding: 5px 7px;
+    font-size: 11px;
+  }
+}
+
 </style>
 </head>
 <body class="is-game game-davinci">
@@ -959,6 +1035,22 @@ button.code-tile:disabled { cursor:default; }
     const chosen=selected.playerId===playerId&&selected.tileId===tile.id;
     return tileHtml(tile,{button:true,playerId,selected:chosen,disabled:tile.revealed||!canSelect});
   }
+
+  function recentGuessHtml(r){
+    const guess=r?.lastGuess;
+    if(!guess)return'';
+
+    const actor=r.players?.[guess.actorId];
+    const target=r.players?.[guess.targetId];
+    const colorName=guess.color==='black'?'검정':'흰색';
+    const result=guess.correct?'정답':'오답';
+
+    return`<div class="code-recent-guess ${guess.correct?'correct':'wrong'}" aria-live="polite">
+      <span class="guess-label">최근 추리</span>
+      <span class="guess-copy"><b>${Core.esc(actor?.name||'참가자')}</b> → ${Core.esc(target?.name||'상대')}님의 ${colorName} 타일</span>
+      <span class="guess-number">${Core.esc(String(guess.value))} 선택 · ${result}</span>
+    </div>`;
+  }
   function paintAi(r){
     const me=r?.players?.[Core.me.id],on=!!(me?.aiAssist&&!me.bot);
     aiBtn.classList.toggle('is-on',on);aiBtn.setAttribute('aria-pressed',String(on));aiBtn.disabled=!me||me.bot||r.phase==='over';
@@ -1008,7 +1100,7 @@ button.code-tile:disabled { cursor:default; }
       const values=Core.shuffle(ps.map((_,i)=>i+1),Core.mulberry32((seed+9277)>>>0));
       r.orderChips=values.map((value,i)=>({id:`order_${i}_${Core.uid(3)}`,value,takenBy:null}));
       r.orderRevealed=false;r.orderRevealUntil=null;r.orderWinner=null;
-      r.pool=pool;r.phase='order';r.randomStep=0;r.wrongGuesses={};r.lastReveal=null;r.eliminatedOrder=[];
+      r.pool=pool;r.phase='order';r.randomStep=0;r.wrongGuesses={};r.lastReveal=null;r.lastGuess=null;r.eliminatedOrder=[];
       r.lastAction='시작 순서 칩을 하나씩 선택하세요.';delete r.startedAt;started=true;
     });if(started)Core.sys(roomId,'시작 순서 칩 선택이 시작되었습니다.');}finally{actionBusy=false;}
   }
@@ -1091,13 +1183,26 @@ button.code-tile:disabled { cursor:default; }
       const tile=(target.codeTiles||[]).find(t=>t.id===tileId);if(!tile||tile.revealed)return false;
       r.wrongGuesses=r.wrongGuesses||{};r.wrongGuesses[tile.id]=Array.isArray(r.wrongGuesses[tile.id])?r.wrongGuesses[tile.id]:[];
       if(String(tile.num)===guessValue){
-        tile.revealed=true;r.guessStreak=(r.guessStreak||0)+1;r.lastReveal={tileId:tile.id,targetId:target.id,number:guessValue,correct:true,at:Core.now()};r.lastAction=`${actor.name}님이 ${target.name}님의 ${guessValue}을 맞혔습니다.`;markEliminated(r);
+        tile.revealed=true;
+        r.guessStreak=(r.guessStreak||0)+1;
+        r.lastReveal={tileId:tile.id,targetId:target.id,number:guessValue,correct:true,at:Core.now()};
+        r.lastGuess={actorId:actor.id,targetId:target.id,tileId:tile.id,color:tile.color,value:guessValue,correct:true,at:Core.now()};
+        r.lastAction=`${actor.name}님이 ${target.name}님의 ${guessValue}을 맞혔습니다.`;
+        markEliminated(r);
         if(checkOver(r))return;
         r.step='decision';r.awaitDecision=true;
       }else{
         if(!r.wrongGuesses[tile.id].map(String).includes(guessValue))r.wrongGuesses[tile.id].push(guessValue);
         r.lastReveal={tileId:tile.id,targetId:target.id,number:guessValue,correct:false,at:Core.now()};
-        if(r.pendingDraw&&r.pendingDraw.ownerId===actor.id){const shown=insertTile(actor,r.pendingDraw.tile,true,r.pendingDraw.placementIndex);r.lastReveal.penaltyTileId=shown.id;r.pendingDraw=null;r.lastAction=`${actor.name}님의 추리가 빗나가 뽑은 타일이 공개되었습니다.`;}else r.lastAction=`${actor.name}님의 추리가 빗나갔습니다.`;
+        r.lastGuess={actorId:actor.id,targetId:target.id,tileId:tile.id,color:tile.color,value:guessValue,correct:false,at:Core.now()};
+        if(r.pendingDraw&&r.pendingDraw.ownerId===actor.id){
+          const shown=insertTile(actor,r.pendingDraw.tile,true,r.pendingDraw.placementIndex);
+          r.lastReveal.penaltyTileId=shown.id;
+          r.pendingDraw=null;
+          r.lastAction=`${actor.name}님이 ${target.name}님의 타일을 ${guessValue}로 추리했지만 빗나가, 뽑은 타일이 공개되었습니다.`;
+        }else{
+          r.lastAction=`${actor.name}님이 ${target.name}님의 타일을 ${guessValue}로 추리했지만 빗나갔습니다.`;
+        }
         finishTurn(r);
       }
     });selected={playerId:null,tileId:null};}finally{actionBusy=false;}
@@ -1259,7 +1364,7 @@ button.code-tile:disabled { cursor:default; }
     const hiddenTotal=ps.reduce((n,p)=>n+hiddenCount(p),0),pendingMine=r.pendingDraw?.ownerId===Core.me.id?r.pendingDraw.tile:null;
     const pendingFresh=!!(pendingMine&&pendingMine.id!==renderedPendingId);
     const stepTitle=r.step==='draw'?(myTurn?'타일을 한 개 뽑으세요':`${Core.esc(cur?.name||'-')}님이 타일을 뽑는 중`):r.step==='place-hyphen'?(myTurn?'하이픈 위치를 선택하세요':`${Core.esc(cur?.name||'-')}님이 하이픈 위치를 정하는 중`):r.step==='decision'?(myTurn?'정답입니다. 계속 추리할까요?':`${Core.esc(cur?.name||'-')}님이 계속할지 결정 중`):(myTurn?'상대의 숨은 숫자를 추리하세요':`${Core.esc(cur?.name||'-')}님의 추리 차례`);
-    board.innerHTML=`<div class="code-stage"><div class="code-info-strip"><span>남은 타일<b>${(r.pool||[]).length}</b></span><span>숨은 암호<b>${hiddenTotal}</b></span><span>내 미공개<b>${hiddenCount(me)}</b></span><span>차례<b>${Core.esc(cur?.name||'-')}</b></span></div><div class="code-layout"><section class="code-main"><div class="code-turn"><h2>${stepTitle}</h2><p>${Core.esc(r.lastAction||'상대의 암호를 해독하세요.')}</p></div><div class="code-players">${ps.filter(p=>p.id!==Core.me.id).map(p=>`<article class="code-row ${p.id===cur?.id?'current':''} ${p.eliminated?'eliminated':''}"><div class="code-row-head"><div class="code-row-name"><div class="avatar">${Core.esc(Core.initials(p.name))}</div><div><b>${Core.esc(p.name)}</b><div class="code-row-meta"><small>미공개 ${hiddenCount(p)}개</small>${revealedCount(p)?`<span class="public-state">공개 ${revealedCount(p)}개</span>`:''}</div></div></div><div class="code-badges">${p.bot||p.aiAssist?'<span class="code-badge ai">AI</span>':''}${p.eliminated?'<span class="code-badge out">암호 해독 완료</span>':''}</div></div><div class="code-tiles">${(p.codeTiles||[]).map(t=>publicTileHtml(t,p.id,canPick&&!p.eliminated)).join('')}</div>${selected.playerId===p.id&&selected.tileId?`<div class="code-wrong-list">이 타일에서 틀린 숫자: ${(r.wrongGuesses?.[selected.tileId]||[]).join(', ')||'없음'}</div>`:''}</article>`).join('')}</div>${r.step==='draw'&&myTurn?`<div class="code-draw-area"><button class="btn btn-primary code-draw-btn" id="btnDraw">타일 1개 뽑기</button></div>`:''}${r.step==='place-hyphen'&&myTurn?renderDrawHyphenPanel(me,pendingMine):''}${r.step==='guess'&&myTurn?`<div class="code-guess-panel"><h3>${targetTile?`${Core.esc(targetTile.p.name)}님의 ${targetTile.t.color==='black'?'검정':'흰색'} 타일 선택됨`:'먼저 상대의 숨은 타일을 선택하세요'}</h3><p>선택한 타일의 숫자를 추리하세요.</p><div class="code-numbers">${Array.from({length:12},(_,n)=>String(n)).concat('-').map(value=>`<button class="code-number ${value==='-'?'hyphen-guess':''}" data-guess="${value}" ${!targetTile||(r.wrongGuesses?.[selected.tileId]||[]).map(String).includes(String(value))?'disabled':''}>${value}</button>`).join('')}</div></div>`:''}${r.step==='decision'&&myTurn?`<div class="code-decision"><strong>${r.guessStreak||1}개 연속 정답</strong><button class="btn btn-primary" id="btnContinue">계속 추리</button><button class="btn" id="btnStop">여기서 멈추기</button></div>`:''}</section><aside class="code-side"><div class="code-side-card"><h3>내 암호</h3><div class="code-my-tiles">${(me.codeTiles||[]).map(t=>tileHtml(t,{visible:true})).join('')}</div></div><div class="code-side-card"><h3>이번에 뽑은 타일</h3><div class="code-pending">${pendingMine?`${tileHtml(pendingMine,{visible:true,fresh:pendingFresh})}<p class="code-pending-note">멈추면 내 암호에 추가되고, 틀리면 공개됩니다.</p>`:`<p>${r.pendingDraw?'상대가 타일을 확인 중입니다.':'아직 뽑은 타일이 없습니다.'}</p>`}</div></div></aside></div></div>`;
+    board.innerHTML=`<div class="code-stage"><div class="code-info-strip"><span>남은 타일<b>${(r.pool||[]).length}</b></span><span>숨은 암호<b>${hiddenTotal}</b></span><span>내 미공개<b>${hiddenCount(me)}</b></span><span>차례<b>${Core.esc(cur?.name||'-')}</b></span></div><div class="code-layout"><section class="code-main"><div class="code-turn"><h2>${stepTitle}</h2><p>${Core.esc(r.lastAction||'상대의 암호를 해독하세요.')}</p>${recentGuessHtml(r)}</div><div class="code-players">${ps.filter(p=>p.id!==Core.me.id).map(p=>`<article class="code-row ${p.id===cur?.id?'current':''} ${p.eliminated?'eliminated':''}"><div class="code-row-head"><div class="code-row-name"><div class="avatar">${Core.esc(Core.initials(p.name))}</div><div><b>${Core.esc(p.name)}</b><div class="code-row-meta"><small>미공개 ${hiddenCount(p)}개</small>${revealedCount(p)?`<span class="public-state">공개 ${revealedCount(p)}개</span>`:''}</div></div></div><div class="code-badges">${p.bot||p.aiAssist?'<span class="code-badge ai">AI</span>':''}${p.eliminated?'<span class="code-badge out">암호 해독 완료</span>':''}</div></div><div class="code-tiles">${(p.codeTiles||[]).map(t=>publicTileHtml(t,p.id,canPick&&!p.eliminated)).join('')}</div>${selected.playerId===p.id&&selected.tileId?`<div class="code-wrong-list">이 타일에서 틀린 숫자: ${(r.wrongGuesses?.[selected.tileId]||[]).join(', ')||'없음'}</div>`:''}</article>`).join('')}</div>${r.step==='draw'&&myTurn?`<div class="code-draw-area"><button class="btn btn-primary code-draw-btn" id="btnDraw">타일 1개 뽑기</button></div>`:''}${r.step==='place-hyphen'&&myTurn?renderDrawHyphenPanel(me,pendingMine):''}${r.step==='guess'&&myTurn?`<div class="code-guess-panel"><h3>${targetTile?`${Core.esc(targetTile.p.name)}님의 ${targetTile.t.color==='black'?'검정':'흰색'} 타일 선택됨`:'먼저 상대의 숨은 타일을 선택하세요'}</h3><p>선택한 타일의 숫자를 추리하세요.</p><div class="code-numbers">${Array.from({length:12},(_,n)=>String(n)).concat('-').map(value=>`<button class="code-number ${value==='-'?'hyphen-guess':''}" data-guess="${value}" ${!targetTile||(r.wrongGuesses?.[selected.tileId]||[]).map(String).includes(String(value))?'disabled':''}>${value}</button>`).join('')}</div></div>`:''}${r.step==='decision'&&myTurn?`<div class="code-decision"><strong>${r.guessStreak||1}개 연속 정답</strong><button class="btn btn-primary" id="btnContinue">계속 추리</button><button class="btn" id="btnStop">여기서 멈추기</button></div>`:''}</section><aside class="code-side"><div class="code-side-card"><h3>내 암호</h3><div class="code-my-tiles">${(me.codeTiles||[]).map(t=>tileHtml(t,{visible:true})).join('')}</div></div><div class="code-side-card"><h3>이번에 뽑은 타일</h3><div class="code-pending">${pendingMine?`${tileHtml(pendingMine,{visible:true,fresh:pendingFresh})}<p class="code-pending-note">멈추면 내 암호에 추가되고, 틀리면 공개됩니다.</p>`:`<p>${r.pendingDraw?'상대가 타일을 확인 중입니다.':'아직 뽑은 타일이 없습니다.'}</p>`}</div></div></aside></div></div>`;
     renderedPendingId=pendingMine?.id||null;
 
     board.querySelectorAll('[data-target-tile]').forEach(b=>b.addEventListener('click',()=>{
@@ -1277,7 +1382,7 @@ button.code-tile:disabled { cursor:default; }
     const ps=seatedList(r),winner=r.players[r.winner],elims=(r.eliminatedOrder||[]).map(id=>r.players[id]).filter(Boolean);
     board.innerHTML=`<div class="code-result"><div class="eyebrow">CODE COMPLETE</div><h2>암호 해독 완료</h2><div class="code-winner"><b>최종 승리 · ${Core.esc(winner?.name||'승자 없음')}</b><p>마지막까지 공개되지 않은 암호를 지켰습니다.</p></div><div class="code-rank">${winner?`<div class="code-rank-row win"><span>1위 · <b>${Core.esc(winner.name)}</b></span><span>미공개 ${hiddenCount(winner)}개</span></div>`:''}${elims.slice().reverse().map((p,i)=>`<div class="code-rank-row"><span>${i+2}위 · <b>${Core.esc(p.name)}</b></span><span>전체 공개</span></div>`).join('')}</div><div class="modal-actions"><button class="btn" id="btnLeaveAfterGame">자료실 목록으로</button>${isHost(r)?'<button class="btn btn-primary" id="btnRestart">다시 시작</button>':''}</div></div>`;
     document.getElementById('btnLeaveAfterGame')?.addEventListener('click',async()=>{sessionStorage.setItem('table9:suppressRejoinOnce','1');await Core.leaveRoom(roomId).catch(()=>{});location.href='index.html';});
-    document.getElementById('btnRestart')?.addEventListener('click',()=>Core.updateRoom(roomId,rr=>{rr.phase='lobby';['pool','pendingDraw','turn','step','guessStreak','awaitDecision','wrongGuesses','lastReveal','eliminatedOrder','winner','lastAction','finishedAt','randomStep','orderChips','orderRevealed','orderRevealUntil','orderWinner'].forEach(k=>delete rr[k]);Object.values(rr.players||{}).forEach(p=>{delete p.codeTiles;delete p.pendingHyphens;delete p.eliminated;delete p.eliminatedAt;delete p.orderChip;p.ready=!!p.bot||!!p.aiAssist;});}));
+    document.getElementById('btnRestart')?.addEventListener('click',()=>Core.updateRoom(roomId,rr=>{rr.phase='lobby';['pool','pendingDraw','turn','step','guessStreak','awaitDecision','wrongGuesses','lastReveal','lastGuess','eliminatedOrder','winner','lastAction','finishedAt','randomStep','orderChips','orderRevealed','orderRevealUntil','orderWinner'].forEach(k=>delete rr[k]);Object.values(rr.players||{}).forEach(p=>{delete p.codeTiles;delete p.pendingHyphens;delete p.eliminated;delete p.eliminatedAt;delete p.orderChip;p.ready=!!p.bot||!!p.aiAssist;});}));
   }
   function render(r){
     paintAi(r);
