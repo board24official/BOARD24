@@ -566,7 +566,7 @@ body.game-onecard #chatPane.hidden {
   body.game-onecard .chat-input input {
     min-height: 34px !important;
     padding: 6px 8px !important;
-    font-size: 12px !important;
+    font-size: 16px !important;
   }
   body.game-onecard .chat-input .btn {
     min-height: 34px !important;
@@ -1015,7 +1015,21 @@ body.game-onecard #chatPane.hidden {
 
   function canDefendAttack(code, r) {
     if (!isAttack(code) || !jokerColorAllowed(code, r)) return false;
-    return attackLevel(code) >= Number(r.attackLevel || 1);
+
+    const card = parseCard(code);
+    const requiredLevel = Number(r.attackLevel || 1);
+    if (attackLevel(code) < requiredLevel) return false;
+
+    // 조커는 기존 조커 문양 조건에 따라 공격을 이어갈 수 있다.
+    if (card.joker) return true;
+
+    // 일반 공격 카드는 평소 원카드와 동일하게
+    // 현재 문양이 같거나 바닥 카드와 같은 숫자여야 한다.
+    const top = parseCard(topCard(r));
+    const sameSuit = card.suit === r.currentSuit;
+    const sameRank = !top.joker && card.rank === top.rank;
+
+    return sameSuit || sameRank;
   }
 
   function needsSuit(code) {
