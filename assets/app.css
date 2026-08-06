@@ -2682,3 +2682,18 @@ input:focus, select:focus { border-color: var(--brass); outline: none; }
     box-shadow: none;
   }
 }
+
+
+/* ==========================================================
+   모든 게임 모바일 채팅 입력 자동 확대 방지
+   iPhone Safari/Chrome은 입력 글자가 16px 미만이면 포커스 시 확대한다.
+   id 선택자와 !important를 함께 사용해 게임별 인라인 CSS보다 우선 적용한다.
+   ========================================================== */
+@media (max-width: 860px) {
+  body.is-game .chat-input input#chatInput,
+  body.is-game input#chatInput[type="text"] {
+    font-size: 16px !important;
+    line-height: 1.25 !important;
+    -webkit-text-size-adjust: 100%;
+  }
+}
