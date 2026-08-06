@@ -575,6 +575,26 @@ body.game-onecard #chatPane.hidden {
   }
 }
 
+
+/* ---------- 원카드 시작 순서 추첨 ---------- */
+.oc-start-order{margin:0 0 12px;padding:12px 14px;border:1px solid #d8e1ef;border-radius:12px;background:#fff}
+.oc-start-order-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:9px}
+.oc-start-order-head b{color:#263247;font-size:13px}
+.oc-start-order-head span{color:#758198;font:9px var(--f-mono)}
+.oc-start-order-list{display:flex;gap:7px;overflow-x:auto;scrollbar-width:none}
+.oc-start-order-list::-webkit-scrollbar{display:none}
+.oc-start-order-item{min-width:92px;padding:8px 9px;border:1px solid #dbe2ed;border-radius:9px;background:#f8faff;text-align:center}
+.oc-start-order-item.starter{border-color:#4779df;background:#edf3ff;box-shadow:0 0 0 2px rgba(71,121,223,.10)}
+.oc-start-order-item strong{display:block;color:#263247;font-size:11px}
+.oc-start-order-item em{display:block;margin-top:4px;color:#315fcb;font:700 15px var(--f-mono);font-style:normal}
+.oc-start-order-item small{display:block;margin-top:3px;color:#7b8798;font-size:8px}
+@media(max-width:860px){
+ .oc-start-order{padding:8px 9px}
+ .oc-start-order-item{min-width:76px;padding:6px 7px}
+ .oc-start-order-item strong{font-size:9px}
+ .oc-start-order-item em{font-size:13px}
+}
+
 </style>
 
 <style id="board24-ai-assist-style">
@@ -984,6 +1004,55 @@ body.game-onecard #chatPane.hidden {
     return { code, suit, rank, joker: false, attack: rank === '2' ? 2 : rank === 'A' ? 3 : 0 };
   }
 
+  const ORDER_RANK_VALUE = { '2':2, '3':3, '4':4, '5':5, '6':6, '7':7, '8':8, '9':9, '10':10, 'J':11, 'Q':12, 'K':13, 'A':14 };
+  const ORDER_SUIT_VALUE = { C:1, D:2, H:3, S:4 };
+
+  function orderCardScore(code) {
+    const c = parseCard(code);
+    return c.joker ? 0 : (ORDER_RANK_VALUE[c.rank] || 0) * 10 + (ORDER_SUIT_VALUE[c.suit] || 0);
+  }
+
+  function drawOpeningOrder(ps, seed) {
+    const pool = [];
+    SUITS.forEach((suit) => RANKS.forEach((rank) => pool.push(suit + rank)));
+    const shuffled = Core.shuffle(pool, Core.mulberry32((Number(seed) || 1) ^ 0x51f15e));
+    const draws = ps.map((p, index) => ({
+      playerId: p.id,
+      card: shuffled[index],
+      score: orderCardScore(shuffled[index])
+    })).sort((a, b) => b.score - a.score);
+
+    return {
+      draws,
+      starterId: draws[0]?.playerId || ps[0]?.id || null,
+      at: Core.now(),
+      fromWinner: false
+    };
+  }
+
+  function startOrderHtml(r) {
+    const data = r.startOrder;
+    if (!data || !Array.isArray(data.draws) || !data.draws.length) return '';
+    if (Core.now() - Number(data.at || 0) > 7000) return '';
+
+    return `<section class="oc-start-order">
+      <div class="oc-start-order-head">
+        <b>${data.fromWinner ? '이전 승자가 선을 잡았습니다' : '첫 판 시작 순서 추첨'}</b>
+        <span>${data.fromWinner ? 'WINNER START' : 'A가 가장 높음'}</span>
+      </div>
+      <div class="oc-start-order-list">
+        ${data.draws.map((item) => {
+          const player = r.players?.[item.playerId];
+          return `<div class="oc-start-order-item ${item.playerId === data.starterId ? 'starter' : ''}">
+            <strong>${Core.esc(player?.name || '참가자')}</strong>
+            <em>${item.card ? Core.esc(cardAria(item.card)) : '승자 선'}</em>
+            <small>${item.playerId === data.starterId ? '첫 차례' : '대기'}</small>
+          </div>`;
+        }).join('')}
+      </div>
+    </section>`;
+  }
+
   function buildDeck(seed) {
     const deck = [];
     SUITS.forEach((s) => RANKS.forEach((r) => deck.push(s + r)));
@@ -1159,7 +1228,25 @@ body.game-onecard #chatPane.hidden {
         r.attack = 0;
         r.attackLevel = 0;
         r.direction = 1;
-        r.turn = 0;
+
+        const previousWinnerId = r.previousWinnerId;
+        const previousWinnerIndex = ps.findIndex((p) => p.id === previousWinnerId);
+
+        if (previousWinnerIndex >= 0) {
+          r.turn = previousWinnerIndex;
+          r.startOrder = {
+            fromWinner: true,
+            starterId: previousWinnerId,
+            draws: [{ playerId: previousWinnerId, card: null, score: 999 }],
+            at: Core.now()
+          };
+        } else {
+          const order = drawOpeningOrder(ps, (r.seed || 1) + Core.now());
+          const starterTurnIndex = ps.findIndex((p) => p.id === order.starterId);
+          r.turn = starterTurnIndex >= 0 ? starterTurnIndex : 0;
+          r.startOrder = order;
+        }
+
         r.winner = null;
         r.oneCardPlayer = null;
         r.oneCardDeclared = {};
@@ -1224,6 +1311,7 @@ body.game-onecard #chatPane.hidden {
 
         if (p.hand.length === 0) {
           r.winner = p.id;
+          r.previousWinnerId = p.id;
           r.phase = 'over';
           r.attack = 0;
           r.attackLevel = 0;
@@ -1365,6 +1453,7 @@ body.game-onecard #chatPane.hidden {
 
         if (bp.hand.length === 0) {
           r.winner = bp.id;
+          r.previousWinnerId = bp.id;
           r.phase = 'over';
           r.attack = 0;
           r.attackLevel = 0;
@@ -1558,6 +1647,7 @@ body.game-onecard #chatPane.hidden {
 
     board.innerHTML = `
       <div class="onecard-stage">
+        ${startOrderHtml(r)}
         <div class="oc-status">
           <span>남은 덱<b>${(r.deck || []).length}</b></span>
           <span>내 카드<b>${hand.length}장</b></span>
@@ -1748,7 +1838,7 @@ body.game-onecard #chatPane.hidden {
           p.hand = [];
           p.ready = !!p.bot || !!p.aiAssist;
         });
-        ['deck','discard','currentSuit','attack','attackLevel','direction','turn','winner','oneCardPlayer','oneCardDeclared','shuffleCount','lastAction','lastPlayedCard','lastPlayedBy','lastPlayedSuit','startedAt']
+        ['deck','discard','currentSuit','attack','attackLevel','direction','turn','winner','oneCardPlayer','oneCardDeclared','shuffleCount','lastAction','lastPlayedCard','lastPlayedBy','lastPlayedSuit','startedAt','startOrder']
           .forEach((key) => delete rr[key]);
       });
     });
