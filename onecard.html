@@ -595,6 +595,145 @@ body.game-onecard #chatPane.hidden {
  .oc-start-order-item em{font-size:13px}
 }
 
+
+/* ---------- 원카드 첫 판 직접 순서 카드 뽑기 ---------- */
+.oc-order-screen {
+  width: min(760px, 100%);
+  margin: 24px auto;
+  padding: 22px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: #fff;
+  text-align: center;
+}
+.oc-order-screen h2 {
+  margin: 0;
+  color: #253044;
+  font-size: 24px;
+}
+.oc-order-screen > p {
+  margin: 8px 0 18px;
+  color: #6f7b8e;
+  font-size: 13px;
+}
+.oc-order-cards {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(54px, 1fr));
+  gap: 10px;
+  margin: 16px 0 20px;
+}
+.oc-order-card {
+  position: relative;
+  min-height: 112px;
+  padding: 0;
+  border: 2px solid #fff;
+  border-radius: 10px;
+  background: repeating-linear-gradient(135deg,#17264b 0 7px,#314d83 7px 14px);
+  box-shadow: 0 7px 16px rgba(24,37,63,.18);
+  cursor: pointer;
+}
+.oc-order-card::after {
+  content: 'B24';
+  position: absolute;
+  inset: 11px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(255,255,255,.45);
+  color: #fff;
+  font: 14px var(--f-display);
+}
+.oc-order-card:disabled {
+  cursor: default;
+  opacity: .32;
+}
+.oc-order-card.mine {
+  opacity: 1;
+  border-color: #4f7bd8;
+  box-shadow: 0 0 0 4px rgba(79,123,216,.15),0 8px 20px rgba(24,37,63,.2);
+}
+.oc-order-card.revealed {
+  display: grid;
+  place-items: center;
+  background: #fff;
+  color: #283247;
+  border-color: #cdd7e6;
+  opacity: 1;
+}
+.oc-order-card.revealed::after {
+  content: none;
+}
+.oc-order-card.revealed b {
+  font: 700 17px var(--f-mono);
+}
+.oc-order-card.revealed small {
+  display: block;
+  margin-top: 5px;
+  color: #738095;
+  font-size: 9px;
+}
+.oc-order-card.starter {
+  border-color: #3e78dc;
+  background: #edf4ff;
+  box-shadow: 0 0 0 4px rgba(62,120,220,.16);
+}
+.oc-order-card.taken:not(.revealed)::before {
+  content: '선택됨';
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  background: rgba(22,31,51,.72);
+  color: #fff;
+  font-size: 10px;
+}
+.oc-order-status {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin: 12px 0;
+}
+.oc-order-status span {
+  padding: 5px 9px;
+  border-radius: 999px;
+  background: #eef2f7;
+  color: #596679;
+  font-size: 10px;
+}
+.oc-order-status span.done {
+  background: #e9f5ed;
+  color: #2d6843;
+}
+.oc-order-result {
+  margin: 15px 0;
+  padding: 13px;
+  border-radius: 11px;
+  background: #edf4ff;
+  color: #2e5da8;
+  font-size: 13px;
+}
+@media (max-width: 860px) {
+  .oc-order-screen {
+    margin: 10px auto;
+    padding: 14px 10px;
+  }
+  .oc-order-screen h2 {
+    font-size: 19px;
+  }
+  .oc-order-cards {
+    grid-template-columns: repeat(4, minmax(48px, 1fr));
+    gap: 7px;
+  }
+  .oc-order-card {
+    min-height: 88px;
+  }
+  .oc-order-card.revealed b {
+    font-size: 13px;
+  }
+}
+
 </style>
 
 <style id="board24-ai-assist-style">
@@ -987,6 +1126,7 @@ body.game-onecard #chatPane.hidden {
 
   let lastPhase = null;
   let botTimer = null;
+  let orderTimer = null;
   let choiceCard = null;
   let actionBusy = false;
   let declareArmed = false;
@@ -1201,67 +1341,229 @@ body.game-onecard #chatPane.hidden {
     return SUITS.slice().sort((a, b) => counts[b] - counts[a])[0] || 'S';
   }
 
+  function initializeGameState(r, starterId) {
+    const ps = seatedList(r);
+    const deck = buildDeck(r.seed || Math.floor(Math.random() * 2147483647));
+
+    ps.forEach((p) => {
+      p.hand = [];
+      p.ready = false;
+      for (let i = 0; i < 7; i++) p.hand.push(deck.pop());
+    });
+
+    let starterIndex = deck.findIndex((code) => {
+      const c = parseCard(code);
+      return !c.joker && !['A', '2', '7', 'J', 'Q', 'K'].includes(c.rank);
+    });
+    if (starterIndex < 0) starterIndex = deck.length - 1;
+
+    const starter = deck.splice(starterIndex, 1)[0];
+    const turnIndex = ps.findIndex((p) => p.id === starterId);
+
+    r.phase = 'playing';
+    r.deck = deck;
+    r.discard = [starter];
+    r.currentSuit = parseCard(starter).suit;
+    r.attack = 0;
+    r.attackLevel = 0;
+    r.direction = 1;
+    r.turn = turnIndex >= 0 ? turnIndex : 0;
+    r.winner = null;
+    r.oneCardPlayer = null;
+    r.oneCardDeclared = {};
+    r.shuffleCount = 0;
+    r.startedAt = Core.now();
+    r.lastAction = '게임 시작';
+    r.lastPlayedCard = null;
+    r.lastPlayedBy = null;
+    r.lastPlayedSuit = null;
+
+    delete r.orderDeck;
+    delete r.orderChoices;
+    delete r.orderRevealed;
+    delete r.orderStarterId;
+  }
+
+  function makeOrderDeck(seed) {
+    const pool = [];
+    SUITS.forEach((suit) => RANKS.forEach((rank) => pool.push(suit + rank)));
+    return Core.shuffle(pool, Core.mulberry32((Number(seed) || 1) ^ 0x72616e64)).slice(0, 12);
+  }
+
   async function startGame() {
     if (actionBusy) return;
     actionBusy = true;
+
     try {
-      let started = false;
       await Core.updateRoom(roomId, (r) => {
         const ps = seatedList(r);
         if (ps.length < 2 || ps.length > 5 || ps.some((p) => !p.ready)) return false;
-        const deck = buildDeck(r.seed || Math.floor(Math.random() * 2147483647));
-        ps.forEach((p) => {
-          p.hand = [];
-          p.ready = false;
-          for (let i = 0; i < 7; i++) p.hand.push(deck.pop());
-        });
-        let starterIndex = deck.findIndex((code) => {
-          const c = parseCard(code);
-          return !c.joker && !['A', '2', '7', 'J', 'Q', 'K'].includes(c.rank);
-        });
-        if (starterIndex < 0) starterIndex = deck.length - 1;
-        const starter = deck.splice(starterIndex, 1)[0];
-        r.phase = 'playing';
-        r.deck = deck;
-        r.discard = [starter];
-        r.currentSuit = parseCard(starter).suit;
-        r.attack = 0;
-        r.attackLevel = 0;
-        r.direction = 1;
 
-        const previousWinnerId = r.previousWinnerId;
-        const previousWinnerIndex = ps.findIndex((p) => p.id === previousWinnerId);
-
+        const previousWinnerIndex = ps.findIndex((p) => p.id === r.previousWinnerId);
         if (previousWinnerIndex >= 0) {
-          r.turn = previousWinnerIndex;
-          r.startOrder = {
-            fromWinner: true,
-            starterId: previousWinnerId,
-            draws: [{ playerId: previousWinnerId, card: null, score: 999 }],
-            at: Core.now()
-          };
-        } else {
-          const order = drawOpeningOrder(ps, (r.seed || 1) + Core.now());
-          const starterTurnIndex = ps.findIndex((p) => p.id === order.starterId);
-          r.turn = starterTurnIndex >= 0 ? starterTurnIndex : 0;
-          r.startOrder = order;
+          initializeGameState(r, r.previousWinnerId);
+          return;
         }
 
-        r.winner = null;
-        r.oneCardPlayer = null;
-        r.oneCardDeclared = {};
-        r.shuffleCount = 0;
-        r.startedAt = Core.now();
-        r.lastAction = '게임 시작';
-        r.lastPlayedCard = null;
-        r.lastPlayedBy = null;
-        r.lastPlayedSuit = null;
-        started = true;
+        r.phase = 'order';
+        r.orderDeck = makeOrderDeck((r.seed || 1) + Core.now());
+        r.orderChoices = {};
+        r.orderRevealed = false;
+        r.orderStarterId = null;
+        r.lastAction = '시작 순서 카드를 직접 뽑아 주세요.';
       });
-      // 원카드는 시작 시 세션/활동 기록 문구를 표시하지 않는다.
     } finally {
       actionBusy = false;
     }
+  }
+
+  async function chooseOrderCard(index) {
+    if (actionBusy) return;
+    actionBusy = true;
+
+    try {
+      await Core.updateRoom(roomId, (r) => {
+        if (r.phase !== 'order' || r.orderRevealed) return false;
+
+        const ps = seatedList(r);
+        const player = r.players?.[Core.me.id];
+        if (!player || player.bot || r.orderChoices?.[player.id]) return false;
+
+        const deck = r.orderDeck || [];
+        if (!Number.isInteger(index) || index < 0 || index >= deck.length) return false;
+
+        const choices = r.orderChoices || {};
+        const occupied = Object.values(choices).some((choice) => Number(choice.index) === index);
+        if (occupied) return false;
+
+        choices[player.id] = { index, card: deck[index], score: orderCardScore(deck[index]) };
+        r.orderChoices = choices;
+
+        if (ps.every((p) => choices[p.id])) {
+          const ranked = ps.map((p) => ({
+            playerId: p.id,
+            ...choices[p.id]
+          })).sort((a, b) => b.score - a.score);
+
+          r.orderStarterId = ranked[0]?.playerId || ps[0]?.id || null;
+          r.orderRevealed = true;
+          r.lastAction = `${r.players[r.orderStarterId]?.name || '참가자'}님이 첫 차례를 잡았습니다.`;
+        }
+      });
+    } finally {
+      actionBusy = false;
+    }
+  }
+
+  function maybeOrderBots(r) {
+    clearTimeout(orderTimer);
+    if (!r || r.phase !== 'order' || r.orderRevealed || !isHost(r)) return;
+
+    const choices = r.orderChoices || {};
+    const autoPlayer = seatedList(r).find((p) => isAutoControlled(p) && !choices[p.id]);
+    if (!autoPlayer) return;
+
+    orderTimer = setTimeout(() => {
+      Core.updateRoom(roomId, (rr) => {
+        if (rr.phase !== 'order' || rr.orderRevealed) return false;
+
+        const currentChoices = rr.orderChoices || {};
+        if (currentChoices[autoPlayer.id]) return false;
+
+        const used = new Set(Object.values(currentChoices).map((choice) => Number(choice.index)));
+        const available = (rr.orderDeck || []).map((_, i) => i).filter((i) => !used.has(i));
+        if (!available.length) return false;
+
+        const index = available[Math.floor(Math.random() * available.length)];
+        currentChoices[autoPlayer.id] = {
+          index,
+          card: rr.orderDeck[index],
+          score: orderCardScore(rr.orderDeck[index])
+        };
+        rr.orderChoices = currentChoices;
+
+        const ps = seatedList(rr);
+        if (ps.every((p) => currentChoices[p.id])) {
+          const ranked = ps.map((p) => ({
+            playerId: p.id,
+            ...currentChoices[p.id]
+          })).sort((a, b) => b.score - a.score);
+
+          rr.orderStarterId = ranked[0]?.playerId || ps[0]?.id || null;
+          rr.orderRevealed = true;
+          rr.lastAction = `${rr.players[rr.orderStarterId]?.name || '참가자'}님이 첫 차례를 잡았습니다.`;
+        }
+      });
+    }, 450);
+  }
+
+  async function confirmOrderAndStart() {
+    if (actionBusy) return;
+    actionBusy = true;
+
+    try {
+      await Core.updateRoom(roomId, (r) => {
+        if (r.phase !== 'order' || !r.orderRevealed || !r.orderStarterId || r.host !== Core.me.id) return false;
+        initializeGameState(r, r.orderStarterId);
+      });
+    } finally {
+      actionBusy = false;
+    }
+  }
+
+  function renderOrder(r) {
+    choiceCard = null;
+
+    const ps = seatedList(r);
+    const choices = r.orderChoices || {};
+    const myChoice = choices[Core.me.id];
+    const used = new Set(Object.values(choices).map((choice) => Number(choice.index)));
+    const revealed = !!r.orderRevealed;
+
+    board.innerHTML = `
+      <section class="oc-order-screen">
+        <h2>${revealed ? '시작 순서가 정해졌습니다' : '시작 순서 카드 뽑기'}</h2>
+        <p>${revealed ? '가장 높은 카드를 뽑은 참가자가 먼저 시작합니다.' : '카드 뒷면 중 하나를 직접 선택하세요. A가 가장 높습니다.'}</p>
+
+        <div class="oc-order-status">
+          ${ps.map((p) => `<span class="${choices[p.id] ? 'done' : ''}">${Core.esc(p.name)} · ${choices[p.id] ? '선택 완료' : '선택 대기'}</span>`).join('')}
+        </div>
+
+        <div class="oc-order-cards">
+          ${(r.orderDeck || []).map((card, index) => {
+            const owner = ps.find((p) => Number(choices[p.id]?.index) === index);
+            const mine = Number(myChoice?.index) === index;
+            const starter = revealed && owner?.id === r.orderStarterId;
+
+            if (revealed && owner) {
+              return `<button type="button" class="oc-order-card revealed ${starter ? 'starter' : ''}" disabled>
+                <span><b>${Core.esc(cardAria(card))}</b><small>${Core.esc(owner.name)}${starter ? ' · 첫 차례' : ''}</small></span>
+              </button>`;
+            }
+
+            return `<button type="button" class="oc-order-card ${mine ? 'mine' : ''} ${used.has(index) ? 'taken' : ''}"
+              data-order-index="${index}"
+              ${(myChoice || used.has(index) || revealed) ? 'disabled' : ''}
+              aria-label="${index + 1}번 시작 순서 카드 선택"></button>`;
+          }).join('')}
+        </div>
+
+        ${revealed ? `<div class="oc-order-result"><b>${Core.esc(r.players?.[r.orderStarterId]?.name || '참가자')}</b>님이 첫 차례입니다.</div>` : ''}
+        ${revealed && isHost(r)
+          ? '<button class="btn btn-primary" id="btnOrderStart">게임 시작</button>'
+          : revealed
+            ? '<p>개설자가 게임을 시작할 때까지 기다려 주세요.</p>'
+            : myChoice
+              ? '<p>다른 참가자가 카드를 뽑을 때까지 기다려 주세요.</p>'
+              : ''}
+      </section>`;
+
+    board.querySelectorAll('[data-order-index]').forEach((button) => {
+      button.addEventListener('click', () => chooseOrderCard(Number(button.dataset.orderIndex)));
+    });
+
+    document.getElementById('btnOrderStart')?.addEventListener('click', confirmOrderAndStart);
+    maybeOrderBots(r);
   }
 
   async function playCard(code, chosenSuit = null, declared = false) {
@@ -1647,7 +1949,6 @@ body.game-onecard #chatPane.hidden {
 
     board.innerHTML = `
       <div class="onecard-stage">
-        ${startOrderHtml(r)}
         <div class="oc-status">
           <span>남은 덱<b>${(r.deck || []).length}</b></span>
           <span>내 카드<b>${hand.length}장</b></span>
@@ -1838,7 +2139,7 @@ body.game-onecard #chatPane.hidden {
           p.hand = [];
           p.ready = !!p.bot || !!p.aiAssist;
         });
-        ['deck','discard','currentSuit','attack','attackLevel','direction','turn','winner','oneCardPlayer','oneCardDeclared','shuffleCount','lastAction','lastPlayedCard','lastPlayedBy','lastPlayedSuit','startedAt','startOrder']
+        ['deck','discard','currentSuit','attack','attackLevel','direction','turn','winner','oneCardPlayer','oneCardDeclared','shuffleCount','lastAction','lastPlayedCard','lastPlayedBy','lastPlayedSuit','startedAt','startOrder','orderDeck','orderChoices','orderRevealed','orderStarterId']
           .forEach((key) => delete rr[key]);
       });
     });
@@ -1867,6 +2168,7 @@ body.game-onecard #chatPane.hidden {
     }
 
     if (r.phase === 'lobby') renderLobby(r);
+    else if (r.phase === 'order') renderOrder(r);
     else if (r.phase === 'playing') { renderGame(r); maybeBot(); }
     else renderOver(r);
   });
@@ -1876,7 +2178,7 @@ body.game-onecard #chatPane.hidden {
     if (e.target.closest('a[href="index.html"]')) sessionStorage.setItem('table9:suppressRejoinOnce', '1');
   });
   document.querySelector('[data-leave]').addEventListener('click', async () => {
-    if (room && room.phase === 'playing') {
+    if (room && (room.phase === 'playing' || room.phase === 'order')) {
       if (!confirm('게임이 진행 중입니다. 나가면 참가자 목록에서 제거됩니다. 계속하시겠습니까?')) return;
     }
     await Core.leaveRoom(roomId).catch(() => {});
