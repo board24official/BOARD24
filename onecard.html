@@ -1153,44 +1153,11 @@ body.game-onecard #chatPane.hidden {
   }
 
   function drawOpeningOrder(ps, seed) {
-    const pool = [];
-    SUITS.forEach((suit) => RANKS.forEach((rank) => pool.push(suit + rank)));
-    const shuffled = Core.shuffle(pool, Core.mulberry32((Number(seed) || 1) ^ 0x51f15e));
-    const draws = ps.map((p, index) => ({
-      playerId: p.id,
-      card: shuffled[index],
-      score: orderCardScore(shuffled[index])
-    })).sort((a, b) => b.score - a.score);
-
-    return {
-      draws,
-      starterId: draws[0]?.playerId || ps[0]?.id || null,
-      at: Core.now(),
-      fromWinner: false
-    };
+    return null;
   }
 
   function startOrderHtml(r) {
-    const data = r.startOrder;
-    if (!data || !Array.isArray(data.draws) || !data.draws.length) return '';
-    if (Core.now() - Number(data.at || 0) > 7000) return '';
-
-    return `<section class="oc-start-order">
-      <div class="oc-start-order-head">
-        <b>${data.fromWinner ? '이전 승자가 선을 잡았습니다' : '첫 판 시작 순서 추첨'}</b>
-        <span>${data.fromWinner ? 'WINNER START' : 'A가 가장 높음'}</span>
-      </div>
-      <div class="oc-start-order-list">
-        ${data.draws.map((item) => {
-          const player = r.players?.[item.playerId];
-          return `<div class="oc-start-order-item ${item.playerId === data.starterId ? 'starter' : ''}">
-            <strong>${Core.esc(player?.name || '참가자')}</strong>
-            <em>${item.card ? Core.esc(cardAria(item.card)) : '승자 선'}</em>
-            <small>${item.playerId === data.starterId ? '첫 차례' : '대기'}</small>
-          </div>`;
-        }).join('')}
-      </div>
-    </section>`;
+    return '';
   }
 
   function buildDeck(seed) {
